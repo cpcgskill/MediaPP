@@ -15,12 +15,14 @@ from __future__ import unicode_literals, print_function, division
 if False:
     from typing import *
 
+import cx_Freeze
 from cx_Freeze import setup, Executable
 
 target = Executable(
     script="gui.py",
-    base="console",
+    base="Win32GUI",
     target_name="MediaPP",
+    icon="favicon.ico"
 )
 
 setup(

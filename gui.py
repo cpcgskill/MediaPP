@@ -241,7 +241,7 @@ class Window(MSFluentWindow):
 
     def initWindow(self):
         self.resize(900, 700)
-        self.setWindowIcon(QIcon(FluentIcon.TAG.path()))
+        self.setWindowIcon(QIcon('favicon.ico'))
         self.setWindowTitle('MediaPP')
 
 
