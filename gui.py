@@ -23,7 +23,8 @@ from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from qfluentwidgets import (NavigationItemPosition, MessageBox, setTheme, Theme, MSFluentWindow,
                             NavigationAvatarWidget, qrouter, SubtitleLabel, setFont, InfoBadge,
-                            InfoBadgePosition, ToolButton, PrimaryPushButton, LineEdit, TitleLabel)
+                            InfoBadgePosition, ToolButton, PrimaryPushButton, LineEdit, TitleLabel,
+                            VBoxLayout)
 from qfluentwidgets import FluentIcon
 
 from video import *
@@ -52,8 +53,13 @@ class PathBox(QWidget):
         self.bn.setIcon(FluentIcon.FOLDER)
         self.bn.clicked.connect(self.select_file)
 
+        self.open_dir_bn = ToolButton()
+        self.open_dir_bn.setIcon(FluentIcon.LINK)
+        self.open_dir_bn.clicked.connect(self.open_dir)
+
         self.main_layout.addWidget(self.path_line)
         self.main_layout.addWidget(self.bn)
+        self.main_layout.addWidget(self.open_dir_bn)
 
     def select_file(self):
         if self.is_dir:
@@ -64,6 +70,21 @@ class PathBox(QWidget):
             self.path_line.setText(path)
         else:
             self.path_line.setText('')
+
+    @property
+    def rootWidget(self):
+        now_widget = self
+        while now_widget.parentWidget():
+            now_widget = now_widget.parentWidget()
+        return now_widget
+
+    def open_dir(self):
+        if not self.path_line.text():
+            root_widget = self.rootWidget
+            MessageBox('Error', 'Path is empty', root_widget).exec()
+            return
+        if self.path_line.text():
+            os.startfile(self.path_line.text() if self.is_dir else os.path.dirname(self.path_line.text()))
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -142,6 +163,50 @@ class VideoWidget(QFrame):
             MessageBox('Error', str(e), self).exec()
 
 
+class MusicWidget(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.setObjectName('MusicWidget')
+
+        self.main_layout = QVBoxLayout(self)
+
+        self.main_layout.addWidget(TitleLabel('Batch processing', self))
+
+        self.input_dir_box = PathBox(is_dir=True)
+        self.output_dir_box = PathBox(is_dir=True)
+        self.process_bn = PrimaryPushButton('Process')
+        self.process_bn.clicked.connect(self.process)
+
+        self.main_layout.addWidget(SubtitleLabel('Input Dir', self))
+        self.main_layout.addWidget(self.input_dir_box)
+        self.main_layout.addWidget(SubtitleLabel('Output Dir', self))
+        self.main_layout.addWidget(self.output_dir_box)
+        self.main_layout.addWidget(self.process_bn)
+
+        self.main_layout.addStretch()
+
+    # 支持主要音频格式
+    support_ext = ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.wma']
+
+    def process(self):
+        all_files = [os.path.join(self.input_dir_box.path, i) for i in os.listdir(self.input_dir_box.path)]
+        all_files = [i for i in all_files if os.path.isfile(i) and os.path.splitext(i)[1] in self.support_ext]
+        for file in all_files:
+            self.process_file(file)
+
+    def process_file(self, audio_path):
+        try:
+            output_audio_path = os.path.join(self.output_dir_box.path, os.path.basename(audio_path))
+            audio_path = audio_gain(audio_path, multiple=3)
+            audio_noise_reduction(audio_path,
+                                  audio_out_path=output_audio_path,
+                                  strength=0.005)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            MessageBox('Error', str(e), self).exec()
+
+
 class Widget(QFrame):
 
     def __init__(self, text: str, parent=None):
@@ -162,7 +227,7 @@ class Window(MSFluentWindow):
 
         # create sub interface
         self.videoInterface = VideoWidget(self)
-        self.musicInterface = Widget('Music', self)
+        self.musicInterface = MusicWidget(self)
         self.settingInterface = Widget('Setting', self)
 
         self.initNavigation()
