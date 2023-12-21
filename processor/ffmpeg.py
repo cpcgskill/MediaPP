@@ -28,6 +28,16 @@ def audio_and_video_separation(
         video_out_path=None, audio_out_path=None,
         is_copy_video=False,
 ):
+    # type: (str, str, str, bool) -> (str, str)
+    """
+    分离音频和视频
+
+    :param video_file_path:
+    :param video_out_path:
+    :param audio_out_path:
+    :param is_copy_video:
+    :return:
+    """
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
     aac_audio_out_path = _get_mid_file_path('aac')
@@ -44,6 +54,14 @@ def audio_and_video_separation(
 
 
 def audio_and_video_merge(audio_file_path, video_file_path, video_out_path=None):
+    """
+    合并音频和视频
+
+    :param audio_file_path:
+    :param video_file_path:
+    :param video_out_path:
+    :return:
+    """
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
     call_command([
@@ -57,6 +75,15 @@ def audio_and_video_merge(audio_file_path, video_file_path, video_out_path=None)
 
 def add_background_music(video_file_path, background_music_file_path, background_music_strength=0.01,
                          video_out_path=None):
+    """
+    添加背景音乐
+
+    :param video_file_path:
+    :param background_music_file_path:
+    :param background_music_strength:
+    :param video_out_path:
+    :return:
+    """
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
     call_command([
@@ -73,6 +100,14 @@ def add_background_music(video_file_path, background_music_file_path, background
 
 
 def add_image_watermark(video_file_path, image_file_path, video_out_path=None):
+    """
+    添加图片水印
+
+    :param video_file_path:
+    :param image_file_path:
+    :param video_out_path:
+    :return:
+    """
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
     call_command([
@@ -88,6 +123,19 @@ def add_image_watermark(video_file_path, image_file_path, video_out_path=None):
 def add_text_watermark(video_file_path, text,
                        font_point=(0, 0), font_size=30, font_file='lazy.ttf', font_color='808080', font_alpha=0.2,
                        video_out_path=None):
+    """
+    添加文字水印
+
+    :param video_file_path:
+    :param text:
+    :param font_point:
+    :param font_size:
+    :param font_file:
+    :param font_color:
+    :param font_alpha:
+    :param video_out_path:
+    :return:
+    """
     text = text.replace(':', '\\:')
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
