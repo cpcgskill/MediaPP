@@ -22,12 +22,14 @@ target = Executable(
     script="gui.py",
     base="Win32GUI",
     target_name="MediaPP",
-    icon="favicon.ico"
+    icon="favicon.ico",
+    shortcut_name="Media Processing Program",
+    shortcut_dir="MediaPP",
 )
 
 setup(
     name="MediaPP",
-    version='0.1.0',
+    version='0.1.1',
     description="MediaPP, 一个基于Python的媒体处理软件",
     author="cpcgskill",
     options={
@@ -35,7 +37,22 @@ setup(
             'include_files': ["bin"],
             'packages': ['numpy', 'PyQt6', 'scipy', 'qfluentwidgets'],
             'include_msvcr': False,
+        },
+        'bdist_msi': {
+            "add_to_path": True,
+            "data": {
+                "ProgId": [
+                    ("Prog.Id", None, None, "一个媒体处理工具， 使用ffmpeg+sox。", "IconId", None),
+                ],
+                "Icon": [
+                    ("IconId", "favicon.ico"),
+                ],
+            },
+            "upgrade_code": "{30360DC6-0DA3-6E80-85F6-9D451A087F1E}",
+            "install_icon": "favicon.ico",
+            "environment_variables": {},
         }
     },
     executables=[target]
 )
+# todo: 尝试添加msi支持， 但是仍未完成。
