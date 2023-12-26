@@ -26,7 +26,7 @@ from qfluentwidgets import (NavigationItemPosition, MessageBox, MSFluentWindow,
                             SubtitleLabel, ToolButton, PrimaryPushButton, LineEdit,
                             TitleLabel, DoubleSpinBox, SpinBox, BodyLabel,
                             CardWidget, InfoBadge, InfoLevel, PushButton, SmoothScrollArea, TeachingTip,
-                            TeachingTipTailPosition, TeachingTipView, ComboBox
+                            TeachingTipTailPosition, TeachingTipView, ComboBox, TextEdit, PopupTeachingTip
                             )
 from qfluentwidgets import FluentIcon, Theme, setTheme
 
@@ -227,6 +227,28 @@ class MusicWidget(QFrame):
             MessageBox('Error', str(e), self).exec()
 
 
+class OutputWidget(QFrame):
+    closeSignal = pyqtSignal()
+    def __init__(self, text, parent=None):
+        super().__init__(parent=parent)
+        self.setObjectName('OutputWidget')
+
+        self.main_layout = QVBoxLayout(self)
+
+        self.main_layout.addWidget(TitleLabel('Output', self))
+
+        self.output_text = TextEdit(self)
+        self.output_text.setReadOnly(True)
+        self.main_layout.addWidget(self.output_text)
+
+        self.copy_bn = PushButton('Copy')
+        self.copy_bn.clicked.connect(lambda: QApplication.clipboard().setText(text))
+        self.copy_bn.clicked.connect(self.closeSignal.emit)
+        self.main_layout.addWidget(self.copy_bn, alignment=Qt.AlignmentFlag.AlignRight)
+
+        self.output_text.setText(text)
+
+
 class TaskItemWidget(CardWidget):
     def __init__(self, task_inf, parent=None):
         # type: (task.Task, QWidget) -> None
@@ -274,42 +296,19 @@ class TaskItemWidget(CardWidget):
 
     def show_output(self):
         # MessageBox('Output', self.task_inf.stdout.getvalue(), self.rootWidget).exec()
-        view = TeachingTipView(
-            icon=None,
-            title='Output',
-            content=self.task_inf.stdout.getvalue(),
-            isClosable=True,
-        )
+        view = OutputWidget(self.task_inf.stdout.getvalue())
 
         # add widget to view
-        button = PushButton('复制')
-        view.addWidget(button, align=Qt.AlignmentFlag.AlignRight)
-
-        tip = TeachingTip.make(view, target=self.print_output_bn, duration=-1, parent=self)
-        view.closed.connect(tip.close)
-
-        button.clicked.connect(lambda: QApplication.clipboard().setText(self.task_inf.stdout.getvalue()))
-        button.clicked.connect(tip.close)
+        tip = PopupTeachingTip.make(view, target=self.print_output_bn, duration=-1, parent=self)
+        view.closeSignal.connect(tip.close)
 
     def show_command(self):
         position = TeachingTipTailPosition.BOTTOM
-        view = TeachingTipView(
-            icon=None,
-            title='Command',
-            content=' '.join(self.task_inf.commands),
-            isClosable=True,
-            tailPosition=position,
-        )
+        view = OutputWidget(' '.join(self.task_inf.commands))
 
         # add widget to view
-        button = PushButton('复制')
-        view.addWidget(button, align=Qt.AlignmentFlag.AlignRight)
-
-        tip = TeachingTip.make(PushButton("aaa"), target=self.print_command_bn, duration=-1, tailPosition=position, parent=self)
-        view.closed.connect(tip.close)
-
-        button.clicked.connect(lambda: QApplication.clipboard().setText(' '.join(self.task_inf.commands)))
-        button.clicked.connect(tip.close)
+        tip = PopupTeachingTip.make(view, target=self.print_command_bn, duration=-1, tailPosition=position, parent=self)
+        view.closeSignal.connect(tip.close)
 
 
 class TaskIndexWidget(QFrame):
