@@ -247,7 +247,7 @@ class TaskItemWidget(CardWidget):
 
         status = self.task_inf.status
         if status == task.TaskStatus.running:
-            self.task_status_label = InfoBadge("Running", self, InfoLevel.INFOAMTION)
+            self.task_status_label = InfoBadge("Running", self, InfoLevel.ATTENTION)
         if status == task.TaskStatus.success:
             self.task_status_label = InfoBadge("Success", self, InfoLevel.SUCCESS)
         if status == task.TaskStatus.error:
@@ -305,7 +305,7 @@ class TaskItemWidget(CardWidget):
         button = PushButton('复制')
         view.addWidget(button, align=Qt.AlignmentFlag.AlignRight)
 
-        tip = TeachingTip.make(view, target=self.print_command_bn, duration=-1, tailPosition=position, parent=self)
+        tip = TeachingTip.make(PushButton("aaa"), target=self.print_command_bn, duration=-1, tailPosition=position, parent=self)
         view.closed.connect(tip.close)
 
         button.clicked.connect(lambda: QApplication.clipboard().setText(' '.join(self.task_inf.commands)))
