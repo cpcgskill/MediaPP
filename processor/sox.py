@@ -23,6 +23,7 @@ if not os.path.isfile(sox_path):
     sys.exit(1)
 
 def audio_gain(audio_path, multiple=3, audio_out_path=None):
+    # type: (str, float, str) -> str
     """
     增益
 
@@ -31,11 +32,10 @@ def audio_gain(audio_path, multiple=3, audio_out_path=None):
     :param audio_out_path:
     :return:
     """
-    # type: (str, float, str) -> str
     if audio_out_path is None:
         audio_out_path = _get_mid_file_path('wav')
     call_command([sox_path, '-v', '{}'.format(multiple), audio_path, audio_out_path])
-    return audio_path
+    return audio_out_path
 
 
 def audio_noise_reduction(audio_path, strength=0.005, audio_out_path=None):

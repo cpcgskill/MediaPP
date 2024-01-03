@@ -21,6 +21,7 @@ import io
 import enum
 import datetime
 
+
 class TaskStatus(enum.Enum):
     running = 'running'
     success = 'success'
@@ -39,13 +40,19 @@ class Task(object):
 
     def run(self):
         # type: () -> None
-        self.process = subprocess.Popen(self.commands, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, stderr = self.process.communicate()
-        if stdout is not None:
-            self.stdout.write(stdout.decode('utf-8'))
-        if stderr is not None:
-            self.stderr.write(stderr.decode('utf-8'))
-        self.status = TaskStatus.success if self.process.poll() == 0 else TaskStatus.error
+        # 启动子进程运行命令
+        process = subprocess.Popen(self.commands, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+        # 实时读取输出并写入IO流
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip())
+                self.stdout.write(output)
+                self.stdout.flush()
+        self.status = TaskStatus.success if process.poll() == 0 else TaskStatus.error
 
     def start(self):
         # type: () -> None

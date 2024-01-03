@@ -36,6 +36,13 @@ from video import *
 task_ad = task.TaskAD()
 
 
+def rootWidget(widget):
+    now_widget = widget
+    while now_widget.parentWidget():
+        now_widget = now_widget.parentWidget()
+    return now_widget
+
+
 class PathBox(QWidget):
 
     def __init__(self, is_dir=True, parent=None):
@@ -75,16 +82,9 @@ class PathBox(QWidget):
         else:
             self.path_line.setText('')
 
-    @property
-    def rootWidget(self):
-        now_widget = self
-        while now_widget.parentWidget():
-            now_widget = now_widget.parentWidget()
-        return now_widget
-
     def open_dir(self):
         if not self.path_line.text():
-            root_widget = self.rootWidget
+            root_widget = rootWidget(self)
             MessageBox('Error', 'Path is empty', root_widget).exec()
             return
         if self.path_line.text():
@@ -148,13 +148,13 @@ class VideoWidget(QFrame):
         self.setting_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
         self.setting_layout.addWidget(self.noise_reduction_strength)
 
-        # 增益倍数
-        self.gain_multiple = SpinBox()
-        self.gain_multiple.setRange(0, 100)
-        self.gain_multiple.setSingleStep(1)
-        self.gain_multiple.setValue(5)
-        self.setting_layout.addWidget(SubtitleLabel('Gain Multiple', self))
-        self.setting_layout.addWidget(self.gain_multiple)
+        # 增益
+        self.audio_gain = SpinBox()
+        self.audio_gain.setRange(0, 100)
+        self.audio_gain.setSingleStep(1)
+        self.audio_gain.setValue(18)
+        self.setting_layout.addWidget(SubtitleLabel('Audio Gain', self))
+        self.setting_layout.addWidget(self.audio_gain)
 
         self.main_layout.addLayout(self.setting_layout)
 
@@ -165,20 +165,17 @@ class VideoWidget(QFrame):
 
         self.main_layout.addStretch()
 
-    @property
-    def rootWidget(self):
-        now_widget = self
-        while now_widget.parentWidget():
-            now_widget = now_widget.parentWidget()
-        return now_widget
-
     def process(self):
         task_ad.register_task(
             'Batch processing',
-            ['python', 'batch_process_video.py', self.input_dir_box.path, self.output_dir_box.path,
-             str(self.noise_reduction_strength.value()), str(self.gain_multiple.value())],
+            [
+                'python', 'batch_process.py', 'video',
+                self.input_dir_box.path, self.output_dir_box.path,
+                str(self.noise_reduction_strength.value()),
+                str(self.audio_gain.value()),
+            ],
         )
-        MessageBox('Success', 'Task added', self.rootWidget).exec()
+        MessageBox('Success', 'Task added', rootWidget(self)).exec()
 
 
 class MusicWidget(QFrame):
@@ -192,43 +189,52 @@ class MusicWidget(QFrame):
 
         self.input_dir_box = PathBox(is_dir=True)
         self.output_dir_box = PathBox(is_dir=True)
-        self.process_bn = PrimaryPushButton('Process')
-        self.process_bn.clicked.connect(self.process)
-
         self.main_layout.addWidget(SubtitleLabel('Input Dir', self))
         self.main_layout.addWidget(self.input_dir_box)
         self.main_layout.addWidget(SubtitleLabel('Output Dir', self))
         self.main_layout.addWidget(self.output_dir_box)
+
+        self.setting_layout = QHBoxLayout()
+        # 降噪强度
+        self.noise_reduction_strength = DoubleSpinBox()
+        self.noise_reduction_strength.setRange(0, 1)
+        self.noise_reduction_strength.setSingleStep(0.01)
+        self.noise_reduction_strength.setValue(0.01)
+        self.setting_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
+        self.setting_layout.addWidget(self.noise_reduction_strength)
+
+        # 增益
+        self.audio_gain = SpinBox()
+        self.audio_gain.setRange(0, 100)
+        self.audio_gain.setSingleStep(1)
+        self.audio_gain.setValue(18)
+        self.setting_layout.addWidget(SubtitleLabel('Audio Gain', self))
+        self.setting_layout.addWidget(self.audio_gain)
+
+        self.main_layout.addLayout(self.setting_layout)
+
+        self.process_bn = PrimaryPushButton('Process')
+        self.process_bn.clicked.connect(self.process)
         self.main_layout.addWidget(self.process_bn)
 
         self.main_layout.addStretch()
 
-    # 支持主要音频格式
-    support_ext = ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.wma']
-
     def process(self):
-        all_files = [os.path.join(self.input_dir_box.path, i) for i in os.listdir(self.input_dir_box.path)]
-        all_files = [i for i in all_files if os.path.isfile(i) and os.path.splitext(i)[1] in self.support_ext]
-        for file in all_files:
-            self.process_file(file)
-
-    def process_file(self, audio_path):
-        try:
-            output_audio_path = os.path.join(self.output_dir_box.path, os.path.basename(audio_path))
-            audio_path = audio_noise_reduction(audio_path, strength=0.01)
-            # audio_noise_reduction(audio_path,
-            #                       audio_out_path=output_audio_path,
-            #                       strength=0.005)
-            audio_gain(audio_path, multiple=5, audio_out_path=output_audio_path)
-
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            MessageBox('Error', str(e), self).exec()
+        task_ad.register_task(
+            'Batch processing',
+            [
+                'python', 'batch_process.py', 'audio',
+                self.input_dir_box.path, self.output_dir_box.path,
+                str(self.noise_reduction_strength.value()),
+                str(self.audio_gain.value()),
+            ],
+        )
+        MessageBox('Success', 'Task added', rootWidget(self)).exec()
 
 
 class OutputWidget(QFrame):
     closeSignal = pyqtSignal()
+
     def __init__(self, text, parent=None):
         super().__init__(parent=parent)
         self.setObjectName('OutputWidget')
@@ -287,15 +293,24 @@ class TaskItemWidget(CardWidget):
         self.print_command_bn.clicked.connect(self.show_command)
         self.main_layout.addWidget(self.print_command_bn)
 
-    @property
-    def rootWidget(self):
-        now_widget = self
-        while now_widget.parentWidget():
-            now_widget = now_widget.parentWidget()
-        return now_widget
+        # 使用轮询事件每 0.1 秒更新状态
+        self.timer_id = self.startTimer(100)
+
+    def timerEvent(self, e):
+        super(TaskItemWidget, self).timerEvent(e)
+        status = self.task_inf.status
+        if status == task.TaskStatus.running:
+            self.task_status_label.setText("Running")
+            self.task_status_label.setLevel(InfoLevel.ATTENTION)
+        if status == task.TaskStatus.success:
+            self.task_status_label.setText("Success")
+            self.task_status_label.setLevel(InfoLevel.SUCCESS)
+        if status == task.TaskStatus.error:
+            self.task_status_label.setText("Error")
+            self.task_status_label.setLevel(InfoLevel.ERROR)
 
     def show_output(self):
-        # MessageBox('Output', self.task_inf.stdout.getvalue(), self.rootWidget).exec()
+        # MessageBox('Output', self.task_inf.stdout.getvalue(), rootWidget(self)).exec()
         view = OutputWidget(self.task_inf.stdout.getvalue())
 
         # add widget to view
