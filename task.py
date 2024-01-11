@@ -12,6 +12,8 @@
 """
 from __future__ import unicode_literals, print_function, division
 
+import sys
+
 if False:
     from typing import *
 
@@ -69,6 +71,10 @@ class TaskAD(object):
         task = Task(name, commands)
         self.task_list.append(task)
         task.start()
+
+    def register_task_python_script(self, name, commands):
+        # type: (str, List[str]) -> None
+        self.register_task(name, [sys.executable] + commands)
 
     def find_task_status(self, name):
         # type: (str) -> bool

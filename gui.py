@@ -31,8 +31,10 @@ from qfluentwidgets import (NavigationItemPosition, MessageBox, MSFluentWindow,
 from qfluentwidgets import FluentIcon, Theme, setTheme
 
 import task
+from setting import Setting
 from video import *
 
+setting = Setting()
 task_ad = task.TaskAD()
 
 
@@ -44,6 +46,7 @@ def rootWidget(widget):
 
 
 class PathBox(QWidget):
+    path_changed = pyqtSignal(str)
 
     def __init__(self, is_dir=True, parent=None):
         self.is_dir = is_dir
@@ -55,10 +58,11 @@ class PathBox(QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.path_line = LineEdit()
+        self.path_line.textChanged.connect(self.path_changed.emit)
         if self.is_dir:
-            self.path_line.setPlaceholderText('可拖拽文件夹到此处')
+            self.path_line.setPlaceholderText('Can drag dir to here')
         else:
-            self.path_line.setPlaceholderText('可拖拽文件到此处')
+            self.path_line.setPlaceholderText('Can drag file to here')
 
         self.bn = ToolButton()
         self.bn.setIcon(FluentIcon.FOLDER)
@@ -79,8 +83,6 @@ class PathBox(QWidget):
             path = QFileDialog.getOpenFileName()[0]
         if path:
             self.path_line.setText(path)
-        else:
-            self.path_line.setText('')
 
     def open_dir(self):
         if not self.path_line.text():
@@ -166,13 +168,14 @@ class VideoWidget(QFrame):
         self.main_layout.addStretch()
 
     def process(self):
-        task_ad.register_task(
+        task_ad.register_task_python_script(
             'Batch processing',
             [
-                'python', 'batch_process.py', 'video',
+                'batch_process.py', 'video',
                 self.input_dir_box.path, self.output_dir_box.path,
                 str(self.noise_reduction_strength.value()),
                 str(self.audio_gain.value()),
+                setting.noise_file_path if setting.noise_file_path else '',
             ],
         )
         MessageBox('Success', 'Task added', rootWidget(self)).exec()
@@ -220,13 +223,14 @@ class MusicWidget(QFrame):
         self.main_layout.addStretch()
 
     def process(self):
-        task_ad.register_task(
+        task_ad.register_task_python_script(
             'Batch processing',
             [
-                'python', 'batch_process.py', 'audio',
+                'batch_process.py', 'audio',
                 self.input_dir_box.path, self.output_dir_box.path,
                 str(self.noise_reduction_strength.value()),
                 str(self.audio_gain.value()),
+                setting.noise_file_path if setting.noise_file_path else '',
             ],
         )
         MessageBox('Success', 'Task added', rootWidget(self)).exec()
@@ -388,13 +392,18 @@ class SettingWidget(QFrame):
         self.theme_layout.addStretch()
         self.main_layout.addLayout(self.theme_layout)
 
+        self.noise_file_path_box = PathBox(is_dir=False)
+        self.noise_file_path_box.path_changed.connect(self.change_noise_file_path)
+        self.main_layout.addWidget(SubtitleLabel('Noise File Path', self))
+        self.main_layout.addWidget(self.noise_file_path_box)
+
         # export and import setting
         self.export_import_layout = QHBoxLayout()
         self.export_bn = PrimaryPushButton('Export')
-        self.export_bn.clicked.connect(self.export_setting)
+        self.export_bn.clicked.connect(self.export_setting_dialog)
         self.export_import_layout.addWidget(self.export_bn)
         self.import_bn = PrimaryPushButton('Import')
-        self.import_bn.clicked.connect(self.import_setting)
+        self.import_bn.clicked.connect(self.import_setting_dialog)
         self.export_import_layout.addWidget(self.import_bn)
         self.export_import_layout.addStretch()
         self.main_layout.addLayout(self.export_import_layout)
@@ -403,42 +412,62 @@ class SettingWidget(QFrame):
 
         self.load()
 
-    @staticmethod
-    def change_theme(theme):
+    def change_theme(self, theme):
         if theme == 'Auto':
             setTheme(Theme.AUTO)
         elif theme == 'Light':
             setTheme(Theme.LIGHT)
         elif theme == 'Dark':
             setTheme(Theme.DARK)
+        setting.theme = theme
+        self.save()
 
-    def save(self):
-        with open('setting.json', 'w') as f:
-            json.dump({
-                'theme': self.theme_box.currentText()
-            }, f)
+    def change_noise_file_path(self, path):
+        if path:
+            setting.noise_file_path = path
+        else:
+            setting.noise_file_path = None
+        self.save()
+
+    @staticmethod
+    def export_setting(file):
+        file = os.path.abspath(file)
+
+        if not os.path.isdir(os.path.dirname(file)):
+            os.makedirs(os.path.dirname(file))
+
+        with open(file, 'w') as f:
+            f.write(setting.model_dump_json(indent=4))
+
+    def import_setting(self, file):
+        global setting
+
+        file = os.path.abspath(file)
+
+        with open(file, 'r') as f:
+            setting = Setting.model_validate_json(f.read())
+            self.theme_box.setCurrentText(setting.theme.value)
+            self.change_theme(setting.theme.value)
+            if setting.noise_file_path:
+                self.noise_file_path_box.path_line.setText(setting.noise_file_path)
+
+    @classmethod
+    def save(cls):
+        cls.export_setting('setting.json')
 
     def load(self):
-        if os.path.exists('setting.json'):
-            with open('setting.json', 'r') as f:
-                setting = json.load(f)
-                self.theme_box.setCurrentText(setting['theme'])
-                self.change_theme(setting['theme'])
+        if os.path.isfile('setting.json'):
+            self.import_setting('setting.json')
 
-    def export_setting(self):
+    def export_setting_dialog(self):
         path = QFileDialog.getSaveFileName(self, 'Export setting', 'setting.json', 'JSON File (*.json)')[0]
         if path:
-            with open(path, 'w') as f:
-                json.dump({
-                    'theme': self.theme_box.currentText()
-                }, f)
+            self.export_setting(path)
 
-    def import_setting(self):
+    def import_setting_dialog(self):
         path = QFileDialog.getOpenFileName(self, 'Import setting', '', 'JSON File (*.json)')[0]
         if path:
-            import shutil
-            shutil.copy(path, 'setting.json')
-            self.load()
+            self.import_setting(path)
 
 
 class Window(MSFluentWindow):

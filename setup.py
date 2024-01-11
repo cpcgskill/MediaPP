@@ -19,7 +19,7 @@ import cx_Freeze
 from cx_Freeze import setup, Executable
 
 target = Executable(
-    script="gui.py",
+    script="main.py",
     base="Win32GUI",
     target_name="MediaPP",
     icon="favicon.ico",

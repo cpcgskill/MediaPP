@@ -38,20 +38,24 @@ def audio_gain(audio_path, multiple=3, audio_out_path=None):
     return audio_out_path
 
 
-def audio_noise_reduction(audio_path, strength=0.005, audio_out_path=None):
+def audio_noise_reduction(audio_path, strength=0.005, noise_audio_fpath=None, audio_out_path=None):
     # type: (str, float, str) -> str
     """
     自动降噪
 
     :param audio_path:
     :param strength:
+    :param noise_audio_fpath:
     :param audio_out_path:
     :return:
     """
     noise_prof_out_path = _get_mid_file_path('prof')
     if audio_out_path is None:
         audio_out_path = _get_mid_file_path('wav')
-    call_command([sox_path, audio_path, '-n', 'noiseprof', noise_prof_out_path])
+    if noise_audio_fpath is None:
+        call_command([sox_path, audio_path, '-n', 'noiseprof', noise_prof_out_path])
+    else:
+        call_command([sox_path, noise_audio_fpath, '-n', 'noiseprof', noise_prof_out_path])
     call_command([
         sox_path, audio_path, audio_out_path,
         'noisered', noise_prof_out_path,
