@@ -16,6 +16,7 @@ if False:
     from typing import *
 
 from video import *
+from processor.sox import *
 import sys
 
 video_support_ext = ['.mp4', '.kv', '.avi', '.mov', '.flv', '.wmv', '.webm']
@@ -26,8 +27,7 @@ if __name__ == '__main__':
     input_dir = sys.argv[2]
     output_dir = sys.argv[3]
     noise_reduction_strength = float(sys.argv[4])
-    gain_dB = int(sys.argv[5])
-    gain_multiple = 10 ** (gain_dB / 20)
+    norm_dB = int(sys.argv[5])
     noise_file_path = sys.argv[6]
     if noise_file_path == '':
         noise_file_path = None
@@ -46,7 +46,8 @@ if __name__ == '__main__':
                                                strength=noise_reduction_strength,
                                                noise_audio_fpath=noise_file_path,
                                                )
-            audio_path = audio_gain(audio_path, multiple=gain_multiple)
+            audio_path = audio_norm(audio_path, db=norm_dB)
+            audio_path = audio_bandpass_filter(audio_path, low=100, high=3000)
 
             audio_and_video_merge(
                 audio_path,
@@ -63,6 +64,9 @@ if __name__ == '__main__':
                                                strength=noise_reduction_strength,
                                                noise_audio_fpath=noise_file_path,
                                                )
-            audio_gain(audio_path, multiple=gain_multiple, audio_out_path=output_audio_path)
+            # audio_gain(audio_path, multiple=gain_multiple, audio_out_path=output_audio_path)
+            audio_path = audio_norm(audio_path, db=norm_dB)
+            audio_path = audio_bandpass_filter(audio_path, low=100, high=3000, audio_out_path=output_audio_path)
+
     else:
         raise ValueError('Unknown type: {}'.format(typ))

@@ -43,15 +43,25 @@ class Task(object):
     def run(self):
         # type: () -> None
         # 启动子进程运行命令
-        process = subprocess.Popen(self.commands, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        process = subprocess.Popen(
+            self.commands,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
 
         # 实时读取输出并写入IO流
         while True:
             output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
+            if output == b'' and process.poll() is not None:
                 break
             if output:
-                print(output.strip())
+                if output.startswith(b'\r\n'):
+                    output = output[2:]
+                elif output.startswith(b'\n') or output.startswith(b'\r'):
+                    output = output[1:]
+                output = output.decode('utf-8')
+
+                print(output)
                 self.stdout.write(output)
                 self.stdout.flush()
         self.status = TaskStatus.success if process.poll() == 0 else TaskStatus.error

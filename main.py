@@ -20,6 +20,7 @@ if False:
 import sys
 import threading
 import subprocess
+import logging
 
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
@@ -30,6 +31,48 @@ from qfluentwidgets import Theme, setTheme
 
 from setting import Setting
 from setting import Theme as SettingTheme
+
+if False:
+    import gui
+print(sys.executable)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.FileHandler('MediaPP.log', encoding='utf-8'),
+        logging.StreamHandler(sys.stdout),
+    ]
+)
+class MainThread(QThread):
+    close_signal = pyqtSignal(int)
+    output_signal = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super(MainThread, self).__init__(parent)
+        self.process = subprocess.Popen(
+            [sys.executable, 'gui.py'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+
+    def run(self):
+        while True:
+            output = self.process.stdout.readline()
+            if output == b'' and self.process.poll() is not None:
+                break
+            if output:
+                output = output.decode('utf-8')
+                if output.endswith('\r\n'):
+                    output = output[:-2]
+                if output.endswith('\n'):
+                    output = output[:-1]
+                self.output_signal.emit(output)
+        self.close_signal.emit(self.process.poll())
+
+    def kill(self):
+        self.process.kill()
+
 
 class MainWindow(PlainTextEdit):
     def __init__(self, parent=None):
@@ -48,26 +91,26 @@ class MainWindow(PlainTextEdit):
                 elif setting.theme == SettingTheme.LIGHT:
                     setTheme(Theme.LIGHT)
 
-        self.thread = threading.Thread(target=self.run_gui)
+        self.thread = MainThread(self)
+        self.thread.output_signal.connect(self.output)
+        self.thread.close_signal.connect(self.exit)
+
         self.thread.start()
 
-    def run_gui(self):
-        process = subprocess.Popen(
-            [sys.executable, 'gui.py'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
-        while True:
-            output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
-                break
-            if output:
-                self.appendPlainText(output)
-                self.ensureCursorVisible()
-                self.repaint()
-        exit(process.poll())
+    def closeEvent(self, a0):
+        # stop thread
+        self.thread.kill()
+        self.thread.wait()
+        super(MainWindow, self).closeEvent(a0)
 
+    def output(self, text):
+        logging.info(text)
+        self.appendPlainText(text)
+
+    def exit(self, code):
+        self.output("程序退出， 退出码: {}".format(code))
+        if code == 0:
+            self.close()
 
 
 if __name__ == '__main__':

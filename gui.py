@@ -146,16 +146,16 @@ class VideoWidget(QFrame):
         self.noise_reduction_strength = DoubleSpinBox()
         self.noise_reduction_strength.setRange(0, 1)
         self.noise_reduction_strength.setSingleStep(0.01)
-        self.noise_reduction_strength.setValue(0.01)
+        self.noise_reduction_strength.setValue(0.3)
         self.setting_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
         self.setting_layout.addWidget(self.noise_reduction_strength)
 
         # 增益
         self.audio_gain = SpinBox()
-        self.audio_gain.setRange(0, 100)
+        self.audio_gain.setRange(-100, 0)
         self.audio_gain.setSingleStep(1)
-        self.audio_gain.setValue(18)
-        self.setting_layout.addWidget(SubtitleLabel('Audio Gain', self))
+        self.audio_gain.setValue(-3)
+        self.setting_layout.addWidget(SubtitleLabel('Audio Norm dB', self))
         self.setting_layout.addWidget(self.audio_gain)
 
         self.main_layout.addLayout(self.setting_layout)
@@ -202,16 +202,16 @@ class MusicWidget(QFrame):
         self.noise_reduction_strength = DoubleSpinBox()
         self.noise_reduction_strength.setRange(0, 1)
         self.noise_reduction_strength.setSingleStep(0.01)
-        self.noise_reduction_strength.setValue(0.01)
+        self.noise_reduction_strength.setValue(0.3)
         self.setting_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
         self.setting_layout.addWidget(self.noise_reduction_strength)
 
         # 增益
         self.audio_gain = SpinBox()
-        self.audio_gain.setRange(0, 100)
+        self.audio_gain.setRange(-100, 0)
         self.audio_gain.setSingleStep(1)
-        self.audio_gain.setValue(18)
-        self.setting_layout.addWidget(SubtitleLabel('Audio Gain', self))
+        self.audio_gain.setValue(-3)
+        self.setting_layout.addWidget(SubtitleLabel('Audio Norm dB', self))
         self.setting_layout.addWidget(self.audio_gain)
 
         self.main_layout.addLayout(self.setting_layout)

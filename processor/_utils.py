@@ -19,6 +19,7 @@ import atexit
 tmp_dir = './.video_tmp'
 
 is_initialized = False
+is_auto_clean = True
 
 
 def _get_mid_dir():
@@ -29,10 +30,11 @@ def _get_mid_dir():
         if not os.path.isdir(tmp_dir):
             os.mkdir(tmp_dir)
 
-        @atexit.register
-        def clean_mid_dir():
-            if os.path.isdir(tmp_dir):
-                shutil.rmtree(tmp_dir)
+        if is_auto_clean:
+            @atexit.register
+            def clean_mid_dir():
+                if os.path.isdir(tmp_dir):
+                    shutil.rmtree(tmp_dir)
 
         is_initialized = True
     return tmp_dir

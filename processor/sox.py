@@ -22,6 +22,7 @@ sox_path = 'bin/sox/sox.exe'
 if not os.path.isfile(sox_path):
     sys.exit(1)
 
+
 def audio_gain(audio_path, multiple=3, audio_out_path=None):
     # type: (str, float, str) -> str
     """
@@ -60,5 +61,27 @@ def audio_noise_reduction(audio_path, strength=0.005, noise_audio_fpath=None, au
         sox_path, audio_path, audio_out_path,
         'noisered', noise_prof_out_path,
         '{}'.format(strength),
+    ])
+    return audio_out_path
+
+
+def audio_norm(audio_path, audio_out_path=None, db=-3):
+    # sox.exe 5.wav output.wav gain -n -3
+    if audio_out_path is None:
+        audio_out_path = _get_mid_file_path('wav')
+    call_command([
+        sox_path, audio_path, audio_out_path,
+        'gain', '-n', '{}'.format(db),
+    ])
+    return audio_out_path
+
+
+def audio_bandpass_filter(audio_path, audio_out_path=None, low=100, high=3000):
+    if audio_out_path is None:
+        audio_out_path = _get_mid_file_path('wav')
+    call_command([
+        sox_path, audio_path, audio_out_path,
+        'highpass', '{}'.format(low),
+        'lowpass', '{}'.format(high),
     ])
     return audio_out_path

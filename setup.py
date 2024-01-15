@@ -15,12 +15,11 @@ from __future__ import unicode_literals, print_function, division
 if False:
     from typing import *
 
-import cx_Freeze
 from cx_Freeze import setup, Executable
 
 target = Executable(
-    script="main.py",
-    base="Win32GUI",
+    script="gui.py",
+    base="console",
     target_name="MediaPP",
     icon="favicon.ico",
     shortcut_name="Media Processing Program",
@@ -35,7 +34,7 @@ setup(
     options={
         'build_exe': {
             'include_files': ["bin"],
-            'packages': ['numpy', 'PyQt6', 'scipy', 'qfluentwidgets'],
+            'packages': ['numpy', 'PyQt6', 'scipy', 'qfluentwidgets', 'gui'],
             'include_msvcr': False,
         },
         'bdist_msi': {
