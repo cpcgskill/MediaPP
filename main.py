@@ -18,6 +18,9 @@ if False:
     from typing import *
 
 import sys
+sys.path.append('./win32')
+sys.path.append('./win32com')
+sys.path.append('./win32comext')
 import threading
 import subprocess
 import logging
