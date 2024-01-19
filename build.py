@@ -52,42 +52,44 @@ print(url)
 # download python
 PATH = os.path.dirname(os.path.abspath(__file__))
 build_path = os.path.join(PATH, 'build')
-tmp_path = os.path.join(PATH, 'tmp')
+out_path = os.path.join(build_path, 'out')
+tmp_path = os.path.join(build_path, 'tmp')
 
-if os.path.isdir(build_path):
-    shutil.rmtree(build_path)
-os.makedirs(build_path)
+
+if os.path.isdir(out_path):
+    shutil.rmtree(out_path)
+os.makedirs(out_path)
 
 if not os.path.isdir(tmp_path):
     os.makedirs(tmp_path)
 
 print('Downloading python...')
-urllib.request.urlretrieve(url, 'tmp/python.zip')
+urllib.request.urlretrieve(url, 'build/tmp/python.zip')
 print('Extracting python...')
-with zipfile.ZipFile('tmp/python.zip', 'r') as zip_ref:
-    zip_ref.extractall('build')
-os.remove('tmp/python.zip')
+with zipfile.ZipFile('build/tmp/python.zip', 'r') as zip_ref:
+    zip_ref.extractall('build/out/')
+os.remove('build/tmp/python.zip')
 print('Downloading Done.')
 
 print('get pip...')
-urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', 'tmp/get-pip.py')
-subprocess.run(['build/python.exe', 'tmp/get-pip.py'])
+urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', 'build/tmp/get-pip.py')
+subprocess.run(['build/out/python.exe', 'build/tmp/get-pip.py'])
 print('get pip Done.')
 
 print('edit python310._pth...')
-with open('build/python310._pth', 'a', encoding='utf-8') as f:
+with open('build/out/python310._pth', 'a', encoding='utf-8') as f:
     # f.writelines(['import site'])
     f.write('import site')
 print('edit python310._pth Done.')
 
 print('install pip...')
-subprocess.run([os.path.abspath('build/python.exe'), '-m', 'pip', 'install', '-r', os.path.abspath('requirements.txt')])
+subprocess.run([os.path.abspath('build/out/python.exe'), '-m', 'pip', 'install', '-r', os.path.abspath('requirements.txt')])
 print('install pip Done.')
 
 print('copy files...')
 for i in files:
     for j in glob.glob(i):
-        target = os.path.join(build_path, j)
+        target = os.path.join(out_path, j)
         print('copy', j, 'to', target)
         if not os.path.isdir(os.path.dirname(target)):
             os.makedirs(os.path.dirname(target))
@@ -99,8 +101,12 @@ with open('main.cpp', 'r', encoding='utf-8') as f:
     main_cpp = f.read()
     main_cpp = main_cpp.replace('{{{{script}}}}', main_script)
 
-with open('tmp/main.cpp', 'w', encoding='utf-8') as f:
+with open('build/tmp/main.cpp', 'w', encoding='utf-8') as f:
     f.write(main_cpp)
 
-subprocess.run(['clang++', 'tmp/main.cpp', '-o', 'build/{exe_name}'.format(exe_name=exe_name)])
+subprocess.run(['clang++', 'build/tmp/main.cpp', '-o', 'build/out/{exe_name}'.format(exe_name=exe_name)])
 print('make exe Done.')
+
+print('clean...')
+shutil.rmtree(tmp_path)
+print('clean Done.')
