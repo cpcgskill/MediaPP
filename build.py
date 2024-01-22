@@ -27,6 +27,7 @@ if False:
 
 exe_name = 'MediaPP.exe'
 main_script = 'gui.py'
+icon_path = 'favicon.ico'
 files = [
     '*.py',
     '*.ico',
@@ -76,11 +77,12 @@ urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', 'build/tmp/ge
 subprocess.run(['build/out/python.exe', 'build/tmp/get-pip.py'])
 print('get pip Done.')
 
-print('edit python310._pth...')
-with open('build/out/python310._pth', 'a', encoding='utf-8') as f:
+pth_file = 'build/out/python{}{}._pth'.format(sys.version_info[0], sys.version_info[1])
+print('edit', pth_file, '...')
+with open(pth_file, 'a', encoding='utf-8') as f:
     # f.writelines(['import site'])
     f.write('import site')
-print('edit python310._pth Done.')
+print('edit', pth_file, 'Done.')
 
 print('install pip...')
 subprocess.run([os.path.abspath('build/out/python.exe'), '-m', 'pip', 'install', '-r', os.path.abspath('requirements.txt')])
@@ -103,8 +105,10 @@ with open('main.cpp', 'r', encoding='utf-8') as f:
 
 with open('build/tmp/main.cpp', 'w', encoding='utf-8') as f:
     f.write(main_cpp)
-
-subprocess.run(['clang++', 'build/tmp/main.cpp', '-o', 'build/out/{exe_name}'.format(exe_name=exe_name)])
+with open('build/tmp/appicon.rc', 'w', encoding='utf-8') as f:
+    f.write('appicon ICON {}\n'.format(os.path.abspath(icon_path)))
+subprocess.run(['windres', 'build/tmp/appicon.rc', '-o', 'build/tmp/appicon.res'])
+subprocess.run(['clang++', 'build/tmp/main.cpp', 'build/tmp/appicon.res', '-o', 'build/out/{exe_name}'.format(exe_name=exe_name)])
 print('make exe Done.')
 
 print('clean...')
