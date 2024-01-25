@@ -55,11 +55,14 @@ class Task(object):
             if output == b'' and process.poll() is not None:
                 break
             if output:
-                if output.startswith(b'\r\n'):
-                    output = output[2:]
-                elif output.startswith(b'\n') or output.startswith(b'\r'):
-                    output = output[1:]
-                output = output.decode('utf-8')
+                if output.endswith(b'\r\n'):
+                    output = output[:-2]
+                elif output.endswith(b'\n') or output.startswith(b'\r'):
+                    output = output[:-1]
+                try:
+                    output = output.decode('utf-8')
+                except UnicodeDecodeError:
+                    output = output.decode('gbk')
 
                 print(output)
                 self.stdout.write(output)

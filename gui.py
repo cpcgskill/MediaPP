@@ -141,25 +141,6 @@ class VideoWidget(QFrame):
         self.main_layout.addWidget(SubtitleLabel('Output Dir', self))
         self.main_layout.addWidget(self.output_dir_box)
 
-        self.setting_layout = QHBoxLayout()
-        # 降噪强度
-        self.noise_reduction_strength = DoubleSpinBox()
-        self.noise_reduction_strength.setRange(0, 1)
-        self.noise_reduction_strength.setSingleStep(0.01)
-        self.noise_reduction_strength.setValue(0.3)
-        self.setting_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
-        self.setting_layout.addWidget(self.noise_reduction_strength)
-
-        # 增益
-        self.audio_gain = SpinBox()
-        self.audio_gain.setRange(-100, 0)
-        self.audio_gain.setSingleStep(1)
-        self.audio_gain.setValue(-3)
-        self.setting_layout.addWidget(SubtitleLabel('Audio Norm dB', self))
-        self.setting_layout.addWidget(self.audio_gain)
-
-        self.main_layout.addLayout(self.setting_layout)
-
         # Process Button
         self.process_bn = PrimaryPushButton('Process')
         self.process_bn.clicked.connect(self.process)
@@ -173,8 +154,8 @@ class VideoWidget(QFrame):
             [
                 'batch_process.py', 'video',
                 self.input_dir_box.path, self.output_dir_box.path,
-                str(self.noise_reduction_strength.value()),
-                str(self.audio_gain.value()),
+                str(setting.noise_reduction_strength),
+                str(setting.norm_dB),
                 setting.noise_file_path if setting.noise_file_path else '',
             ],
         )
@@ -190,31 +171,16 @@ class MusicWidget(QFrame):
 
         self.main_layout.addWidget(TitleLabel('Batch processing', self))
 
+        # help label
+        self.help_label = BodyLabel('''对视频批量进行降噪和增益处理''', self)
+        self.main_layout.addWidget(self.help_label)
+
         self.input_dir_box = PathBox(is_dir=True)
         self.output_dir_box = PathBox(is_dir=True)
         self.main_layout.addWidget(SubtitleLabel('Input Dir', self))
         self.main_layout.addWidget(self.input_dir_box)
         self.main_layout.addWidget(SubtitleLabel('Output Dir', self))
         self.main_layout.addWidget(self.output_dir_box)
-
-        self.setting_layout = QHBoxLayout()
-        # 降噪强度
-        self.noise_reduction_strength = DoubleSpinBox()
-        self.noise_reduction_strength.setRange(0, 1)
-        self.noise_reduction_strength.setSingleStep(0.01)
-        self.noise_reduction_strength.setValue(0.3)
-        self.setting_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
-        self.setting_layout.addWidget(self.noise_reduction_strength)
-
-        # 增益
-        self.audio_gain = SpinBox()
-        self.audio_gain.setRange(-100, 0)
-        self.audio_gain.setSingleStep(1)
-        self.audio_gain.setValue(-3)
-        self.setting_layout.addWidget(SubtitleLabel('Audio Norm dB', self))
-        self.setting_layout.addWidget(self.audio_gain)
-
-        self.main_layout.addLayout(self.setting_layout)
 
         self.process_bn = PrimaryPushButton('Process')
         self.process_bn.clicked.connect(self.process)
@@ -228,8 +194,8 @@ class MusicWidget(QFrame):
             [
                 'batch_process.py', 'audio',
                 self.input_dir_box.path, self.output_dir_box.path,
-                str(self.noise_reduction_strength.value()),
-                str(self.audio_gain.value()),
+                str(setting.noise_reduction_strength),
+                str(setting.norm_dB),
                 setting.noise_file_path if setting.noise_file_path else '',
             ],
         )
@@ -397,6 +363,22 @@ class SettingWidget(QFrame):
         self.main_layout.addWidget(SubtitleLabel('Noise File Path', self))
         self.main_layout.addWidget(self.noise_file_path_box)
 
+        self.noise_reduction_strength = DoubleSpinBox()
+        self.noise_reduction_strength.setMinimum(0)
+        self.noise_reduction_strength.setSingleStep(0.01)
+        self.noise_reduction_strength.setValue(0.3)
+        self.noise_reduction_strength.valueChanged.connect(self.change_noise_reduction_strength)
+        self.main_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
+        self.main_layout.addWidget(self.noise_reduction_strength)
+
+        self.norm_dB = SpinBox()
+        self.norm_dB.setRange(-100, 0)
+        self.norm_dB.setSingleStep(1)
+        self.norm_dB.setValue(-3)
+        self.norm_dB.valueChanged.connect(self.change_norm_dB)
+        self.main_layout.addWidget(SubtitleLabel('Audio Norm dB', self))
+        self.main_layout.addWidget(self.norm_dB)
+
         # export and import setting
         self.export_import_layout = QHBoxLayout()
         self.export_bn = PrimaryPushButton('Export')
@@ -427,6 +409,14 @@ class SettingWidget(QFrame):
             setting.noise_file_path = path
         else:
             setting.noise_file_path = None
+        self.save()
+
+    def change_noise_reduction_strength(self, strength):
+        setting.noise_reduction_strength = strength
+        self.save()
+
+    def change_norm_dB(self, dB):
+        setting.norm_dB = dB
         self.save()
 
     @staticmethod

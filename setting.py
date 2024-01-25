@@ -29,6 +29,8 @@ class Theme(enum.Enum):
 class Setting(pydantic.BaseModel):
     theme: Theme = Theme.AUTO
     noise_file_path: Optional[str] = None
+    noise_reduction_strength: float = 0.3
+    norm_dB: int = -3
 
 
 __all__ = ['Setting', 'Theme']

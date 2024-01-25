@@ -36,8 +36,9 @@ files = [
     'LICENSE',
     'README.md',
     'requirements.txt',
-
 ]
+
+
 python_version = '.'.join([str(i) for i in sys.version_info[:3]])
 if sys.platform.startswith('linux'):
     raise NotImplementedError('Linux is not supported yet.')

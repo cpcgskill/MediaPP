@@ -19,7 +19,7 @@ import atexit
 tmp_dir = './.video_tmp'
 
 is_initialized = False
-is_auto_clean = True
+is_auto_clean = False
 
 
 def _get_mid_dir():
@@ -59,3 +59,14 @@ def _get_tmp_file_path(ext='txt', prefix='', suffix=''):
         _get_mid_dir(),
         '{}tmp{}.{}'.format(prefix, suffix, ext),
     ])
+
+
+def _get_sub_dir_path():
+    global this_file_index
+
+    sub_dir_path = os.path.join(tmp_dir, '{}'.format(this_file_index))
+    this_file_index = this_file_index + 1
+
+    if not os.path.isdir(sub_dir_path):
+        os.makedirs(sub_dir_path)
+    return sub_dir_path
