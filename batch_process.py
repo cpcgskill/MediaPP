@@ -18,26 +18,34 @@ if False:
 from video import *
 from processor.sox import *
 from processor.DTLN import DTLN_batch_process
+from processor._utils import _get_mid_file_path
+from setting import Setting
 import sys
 
 video_support_ext = ['.mp4', '.kv', '.avi', '.mov', '.flv', '.wmv', '.webm']
 audio_support_ext = ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.wma']
 
 
+def audio_batch_process(input_files, setting):
+    # type: (List[str], Setting) -> List[str]
 
-def audio_batch_process(input_files, noise_reduction_strength, norm_dB, noise_file_path=None):
-    # type: (List[str]) -> List[str]
+    print('setting', setting)
     files = DTLN_batch_process(input_files)
     output_files = []
     for audio_path in files:
-        if noise_file_path is not None:
+        print('processing', audio_path)
+        if setting.noise_file_path is not None:
             audio_path = audio_noise_reduction(audio_path,
-                                               strength=noise_reduction_strength,
-                                               noise_audio_fpath=noise_file_path,
+                                               strength=setting.noise_reduction_strength,
+                                               noise_audio_fpath=setting.noise_file_path,
                                                )
         # audio_gain(audio_path, multiple=gain_multiple, audio_out_path=output_audio_path)
-        audio_path = audio_norm(audio_path, db=norm_dB)
-        audio_path = audio_bandpass_filter(audio_path, low=100, high=3000)
+        audio_path = audio_norm(audio_path, db=setting.norm_dB)
+        audio_path = audio_bandpass_filter(
+            audio_path,
+            low=setting.bandpass_filter_low,
+            high=setting.bandpass_filter_high,
+        )
         output_files.append(audio_path)
     return output_files
 
@@ -46,14 +54,17 @@ if __name__ == '__main__':
     typ = sys.argv[1]
     input_dir = sys.argv[2]
     output_dir = sys.argv[3]
-    noise_reduction_strength = float(sys.argv[4])
-    norm_dB = int(sys.argv[5])
-    noise_file_path = sys.argv[6]
-    if noise_file_path == '':
-        noise_file_path = None
-    else:
-        if os.path.splitext(noise_file_path)[1] in video_support_ext:
-            _, noise_file_path = audio_and_video_separation(noise_file_path)
+    setting_path = sys.argv[4]
+    if not os.path.isfile(setting_path):
+        raise ValueError('Setting file not found: {}'.format(setting_path))
+    with open(setting_path, 'r', encoding='utf-8') as f:
+        setting = Setting.model_validate_json(f.read())
+    if setting.noise_file_path is not None:
+        if os.path.splitext(setting.noise_file_path)[1] in video_support_ext:
+            _, setting.noise_file_path = audio_and_video_separation(setting.noise_file_path)
+        tmp_noise_file_path = _get_mid_file_path(os.path.splitext(setting.noise_file_path)[1])
+        shutil.copy(setting.noise_file_path, tmp_noise_file_path)
+        setting.noise_file_path = tmp_noise_file_path
 
     all_files = [os.path.join(input_dir, i) for i in os.listdir(input_dir)]
     if len(all_files) == 0:
@@ -63,7 +74,7 @@ if __name__ == '__main__':
         names = [os.path.basename(i) for i in all_files]
 
         video_paths, audio_paths = zip(*[audio_and_video_separation(i) for i in all_files])
-        audio_paths = audio_batch_process(audio_paths, noise_reduction_strength, norm_dB, noise_file_path)
+        audio_paths = audio_batch_process(audio_paths, setting)
         for name, video_path, audio_path in zip(names, video_paths, audio_paths):
             output_video_path = os.path.join(output_dir, name)
             audio_and_video_merge(
@@ -75,7 +86,7 @@ if __name__ == '__main__':
         all_files = [i for i in all_files if os.path.isfile(i) and os.path.splitext(i)[1] in audio_support_ext]
         names = [os.path.basename(i) for i in all_files]
 
-        audio_paths = audio_batch_process(all_files, noise_reduction_strength, norm_dB, noise_file_path)
+        audio_paths = audio_batch_process(all_files, setting)
 
         for name, audio_path in zip(names, audio_paths):
             output_audio_path = os.path.join(output_dir, name)

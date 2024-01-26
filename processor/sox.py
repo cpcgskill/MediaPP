@@ -12,7 +12,9 @@
 """
 from __future__ import unicode_literals, print_function, division
 
+import io
 import os
+import shutil
 import sys
 
 from command import call_command
@@ -39,6 +41,19 @@ def audio_gain(audio_path, multiple=3, audio_out_path=None):
     return audio_out_path
 
 
+def audio_channel_count(audio_path):
+    # type: (str) -> int
+    """
+    获取音频通道数
+
+    :param audio_path:
+    :return:
+    """
+    stdout = io.StringIO()
+    call_command([sox_path, '--i', '-c', audio_path], stdout=stdout)
+    return int(stdout.getvalue().strip())
+
+
 def audio_noise_reduction(audio_path, strength=0.005, noise_audio_fpath=None, audio_out_path=None):
     # type: (str, float, str) -> str
     """
@@ -54,14 +69,36 @@ def audio_noise_reduction(audio_path, strength=0.005, noise_audio_fpath=None, au
     if audio_out_path is None:
         audio_out_path = _get_mid_file_path('wav')
     if noise_audio_fpath is None:
-        call_command([sox_path, audio_path, '-n', 'noiseprof', noise_prof_out_path])
+        noise_audio_fpath = audio_path
+    tmp_noise_audio_fpath = _get_mid_file_path('wav')
+    call_command([sox_path, noise_audio_fpath, '-c', '1', tmp_noise_audio_fpath])
+    call_command([sox_path, tmp_noise_audio_fpath, '-n', 'noiseprof', noise_prof_out_path])
+
+
+    channel_count = audio_channel_count(audio_path)
+    if channel_count < 1:
+        raise ValueError('channel_count < 1')
+    processed_audio_out_path = []
+    for i in range(channel_count):
+        tmp_audio_path = _get_mid_file_path('wav')
+        call_command([
+            sox_path, audio_path, tmp_audio_path,
+            'remix', '{}'.format(i + 1),
+        ])
+        sub_audio_out_path = _get_mid_file_path('wav')
+        call_command([
+            sox_path, tmp_audio_path, sub_audio_out_path,
+            'noisered', noise_prof_out_path,
+            '{}'.format(strength),
+        ])
+        processed_audio_out_path.append(sub_audio_out_path)
+
+    if len(processed_audio_out_path)>1:
+        call_command([
+            sox_path, '-m', *processed_audio_out_path, audio_out_path,
+        ])
     else:
-        call_command([sox_path, noise_audio_fpath, '-n', 'noiseprof', noise_prof_out_path])
-    call_command([
-        sox_path, audio_path, audio_out_path,
-        'noisered', noise_prof_out_path,
-        '{}'.format(strength),
-    ])
+        shutil.copy(processed_audio_out_path[0], audio_out_path)
     return audio_out_path
 
 

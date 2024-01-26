@@ -31,10 +31,12 @@ class Setting(pydantic.BaseModel):
     noise_file_path: Optional[str] = None
     noise_reduction_strength: float = 0.3
     norm_dB: int = -3
+    bandpass_filter_low: int = 100
+    bandpass_filter_high: int = 3000
 
 
 __all__ = ['Setting', 'Theme']
 
 if __name__ == '__main__':
     print(Setting(theme=Theme.DARK).model_dump_json())
-    Setting.model_validate_json(json.dumps({'theme': 'dark'}))
+    Setting.model_validate_json(json.dumps({'theme': 'Dark'}))

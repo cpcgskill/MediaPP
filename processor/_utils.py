@@ -12,11 +12,10 @@
 """
 from __future__ import unicode_literals, print_function, division
 import os
-import uuid
 import shutil
 import atexit
 
-tmp_dir = './.video_tmp'
+tmp_dir = './.media_pp'
 
 is_initialized = False
 is_auto_clean = False

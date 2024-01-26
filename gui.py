@@ -154,9 +154,10 @@ class VideoWidget(QFrame):
             [
                 'batch_process.py', 'video',
                 self.input_dir_box.path, self.output_dir_box.path,
-                str(setting.noise_reduction_strength),
-                str(setting.norm_dB),
-                setting.noise_file_path if setting.noise_file_path else '',
+                # str(setting.noise_reduction_strength),
+                # str(setting.norm_dB),
+                # setting.noise_file_path if setting.noise_file_path else '',
+                os.path.abspath('./setting.json')
             ],
         )
         MessageBox('Success', 'Task added', rootWidget(self)).exec()
@@ -172,7 +173,7 @@ class MusicWidget(QFrame):
         self.main_layout.addWidget(TitleLabel('Batch processing', self))
 
         # help label
-        self.help_label = BodyLabel('''对视频批量进行降噪和增益处理''', self)
+        self.help_label = BodyLabel('''对音频批量进行降噪和增益处理''', self)
         self.main_layout.addWidget(self.help_label)
 
         self.input_dir_box = PathBox(is_dir=True)
@@ -194,9 +195,10 @@ class MusicWidget(QFrame):
             [
                 'batch_process.py', 'audio',
                 self.input_dir_box.path, self.output_dir_box.path,
-                str(setting.noise_reduction_strength),
-                str(setting.norm_dB),
-                setting.noise_file_path if setting.noise_file_path else '',
+                # str(setting.noise_reduction_strength),
+                # str(setting.norm_dB),
+                # setting.noise_file_path if setting.noise_file_path else '',
+                os.path.abspath('./setting.json')
             ],
         )
         MessageBox('Success', 'Task added', rootWidget(self)).exec()
@@ -325,7 +327,14 @@ class TaskWidget(QFrame):
         self.main_layout = QVBoxLayout(self)
 
         self.main_layout.addWidget(TitleLabel('Task', self))
+        # head
+        self.head_layout = QHBoxLayout()
+        self.head_layout.addStretch()
+        self.main_layout.addLayout(self.head_layout)
 
+
+
+        # body
         self.scroll_area = SmoothScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet('border: none; background: transparent;')
@@ -366,7 +375,7 @@ class SettingWidget(QFrame):
         self.noise_reduction_strength = DoubleSpinBox()
         self.noise_reduction_strength.setMinimum(0)
         self.noise_reduction_strength.setSingleStep(0.01)
-        self.noise_reduction_strength.setValue(0.3)
+        self.noise_reduction_strength.setValue(0.01)
         self.noise_reduction_strength.valueChanged.connect(self.change_noise_reduction_strength)
         self.main_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
         self.main_layout.addWidget(self.noise_reduction_strength)
@@ -378,6 +387,29 @@ class SettingWidget(QFrame):
         self.norm_dB.valueChanged.connect(self.change_norm_dB)
         self.main_layout.addWidget(SubtitleLabel('Audio Norm dB', self))
         self.main_layout.addWidget(self.norm_dB)
+
+        # audio_bandpass_filter
+        self.main_layout.addWidget(SubtitleLabel('Audio Bandpass Filter', self))
+
+        self.bandpass_filter_layout = QHBoxLayout()
+
+        self.bandpass_filter_low = SpinBox()
+        self.bandpass_filter_low.setRange(0, 20000)
+        self.bandpass_filter_low.setSingleStep(1)
+        self.bandpass_filter_low.setValue(100)
+        self.bandpass_filter_low.valueChanged.connect(self.change_bandpass_filter)
+        self.bandpass_filter_layout.addWidget(self.bandpass_filter_low)
+
+        self.audio_bandpass_filter_high = SpinBox()
+        self.audio_bandpass_filter_high.setRange(0, 20000)
+        self.audio_bandpass_filter_high.setSingleStep(1)
+        self.audio_bandpass_filter_high.setValue(3000)
+        self.audio_bandpass_filter_high.valueChanged.connect(self.change_bandpass_filter)
+        self.bandpass_filter_layout.addWidget(self.audio_bandpass_filter_high)
+
+        self.main_layout.addLayout(self.bandpass_filter_layout)
+
+
 
         # export and import setting
         self.export_import_layout = QHBoxLayout()
@@ -419,6 +451,11 @@ class SettingWidget(QFrame):
         setting.norm_dB = dB
         self.save()
 
+    def change_bandpass_filter(self, *_):
+        setting.bandpass_filter_low = self.bandpass_filter_low.value()
+        setting.bandpass_filter_high = self.audio_bandpass_filter_high.value()
+        self.save()
+
     @staticmethod
     def export_setting(file):
         file = os.path.abspath(file)
@@ -440,6 +477,11 @@ class SettingWidget(QFrame):
             self.change_theme(setting.theme.value)
             if setting.noise_file_path:
                 self.noise_file_path_box.path_line.setText(setting.noise_file_path)
+            self.noise_reduction_strength.setValue(setting.noise_reduction_strength)
+            self.norm_dB.setValue(setting.norm_dB)
+            self.bandpass_filter_low.setValue(setting.bandpass_filter_low)
+            self.audio_bandpass_filter_high.setValue(setting.bandpass_filter_high)
+
 
     @classmethod
     def save(cls):

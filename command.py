@@ -14,6 +14,27 @@ from __future__ import unicode_literals, print_function, division
 import subprocess
 
 
-def call_command(args):
+def call_command(args, stdout=None):
     print(*args)
-    return subprocess.check_call(args)
+    process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # 实时读取输出并写入IO流
+    while True:
+        output = process.stdout.readline()
+        if output == b'' and process.poll() is not None:
+            break
+        if output:
+            if output.endswith(b'\r\n'):
+                output = output[:-2]
+            elif output.endswith(b'\n') or output.startswith(b'\r'):
+                output = output[:-1]
+            try:
+                output = output.decode('utf-8')
+            except UnicodeDecodeError:
+                output = output.decode('gbk')
+            print(output)
+            if stdout is not None:
+                stdout.write(output)
+    if process.returncode == 0:
+        return 0
+    else:
+        raise subprocess.CalledProcessError(process.returncode, args)
