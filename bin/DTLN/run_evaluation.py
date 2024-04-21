@@ -17,6 +17,10 @@ Version: 13.05.2020
 
 This code is licensed under the terms of the MIT-license.
 """
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 
 import soundfile as sf
 import librosa
@@ -24,6 +28,7 @@ import numpy as np
 import os
 import argparse
 from DTLN_model import DTLN_model
+
 
 
 

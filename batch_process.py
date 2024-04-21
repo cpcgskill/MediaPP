@@ -30,16 +30,15 @@ def audio_batch_process(input_files, setting):
     # type: (List[str], Setting) -> List[str]
 
     print('setting', setting)
-    files = DTLN_batch_process(input_files)
+    # files = DTLN_batch_process(input_files)
     output_files = []
-    for audio_path in files:
+    for audio_path in input_files:
         print('processing', audio_path)
         if setting.noise_file_path is not None:
             audio_path = audio_noise_reduction(audio_path,
                                                strength=setting.noise_reduction_strength,
                                                noise_audio_fpath=setting.noise_file_path,
                                                )
-        # audio_gain(audio_path, multiple=gain_multiple, audio_out_path=output_audio_path)
         audio_path = audio_norm(audio_path, db=setting.norm_dB)
         audio_path = audio_bandpass_filter(
             audio_path,
@@ -47,7 +46,7 @@ def audio_batch_process(input_files, setting):
             high=setting.bandpass_filter_high,
         )
         output_files.append(audio_path)
-    return output_files
+    return DTLN_batch_process(output_files)
 
 
 if __name__ == '__main__':

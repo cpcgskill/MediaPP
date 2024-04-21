@@ -35,6 +35,12 @@ from setting import Setting
 from video import *
 
 setting = Setting()
+if os.path.isfile('setting.json'):
+    with open('setting.json', 'r') as f:
+        setting = Setting.model_validate_json(f.read())
+else:
+    with open('setting.json', 'w') as f:
+        f.write(setting.model_dump_json(indent=4))
 task_ad = task.TaskAD()
 
 

@@ -92,6 +92,10 @@ print('install pip Done.')
 print('copy files...')
 for i in files:
     for j in glob.glob(i):
+        if not os.path.isfile(j):
+            continue
+        if os.path.split(os.path.dirname(j))[-1] == '__pycache__':
+            continue
         target = os.path.join(out_path, j)
         print('copy', j, 'to', target)
         if not os.path.isdir(os.path.dirname(target)):
