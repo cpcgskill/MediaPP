@@ -22,12 +22,13 @@ import sys
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from qfluentwidgets import (NavigationItemPosition, MessageBox, MSFluentWindow,
-                            SubtitleLabel, ToolButton, PrimaryPushButton, LineEdit,
-                            TitleLabel, DoubleSpinBox, SpinBox, BodyLabel,
-                            CardWidget, InfoBadge, InfoLevel, PushButton, SmoothScrollArea, TeachingTip,
-                            TeachingTipTailPosition, TeachingTipView, ComboBox, TextEdit, PopupTeachingTip
-                            )
+from qfluentwidgets import (
+    NavigationItemPosition, MessageBox, MSFluentWindow,
+    SubtitleLabel, ToolButton, PrimaryPushButton, LineEdit,
+    TitleLabel, DoubleSpinBox, SpinBox, BodyLabel,
+    CardWidget, InfoBadge, InfoLevel, PushButton, SmoothScrollArea, TeachingTip,
+    TeachingTipTailPosition, TeachingTipView, ComboBox, TextEdit, PopupTeachingTip
+)
 from qfluentwidgets import FluentIcon, Theme, setTheme
 
 import task
@@ -125,26 +126,39 @@ class PathBox(QWidget):
         return self.path_line.text()
 
 
-class VideoWidget(QFrame):
-    def __init__(self, parent=None):
+class PageWidget(QFrame):
+    def __init__(self,
+                 name,
+                 title,
+                 description=None,
+                 parent=None):
         super().__init__(parent=parent)
-        self.setObjectName('VideoWidget')
+        self.setObjectName(name)
 
         self.main_layout = QVBoxLayout(self)
 
-        self.main_layout.addWidget(TitleLabel('Batch processing', self))
+        self.main_layout.addWidget(TitleLabel(title, self))
 
         # help label
-        self.help_label = BodyLabel('''对视频批量进行降噪和增益处理''', self)
-        self.main_layout.addWidget(self.help_label)
+        if description is not None:
+            self.help_label = BodyLabel(description, self)
+            self.main_layout.addWidget(self.help_label)
 
+        self.body_widget = QWidget(self)
+        self.main_layout.addWidget(self.body_widget)
+
+
+class VideoWidget(PageWidget):
+    def __init__(self, parent=None):
+        super().__init__('Video', 'Video', '''对视频批量进行降噪和增益处理''', parent=parent)
+        self.main_layout = QVBoxLayout(self.body_widget)
         # Input Dir and Output Dir
         self.input_dir_box = PathBox(is_dir=True)
         self.output_dir_box = PathBox(is_dir=True)
 
-        self.main_layout.addWidget(SubtitleLabel('Input Dir', self))
+        self.main_layout.addWidget(SubtitleLabel('Input folder', self))
         self.main_layout.addWidget(self.input_dir_box)
-        self.main_layout.addWidget(SubtitleLabel('Output Dir', self))
+        self.main_layout.addWidget(SubtitleLabel('Output folder', self))
         self.main_layout.addWidget(self.output_dir_box)
 
         # Process Button
@@ -156,7 +170,7 @@ class VideoWidget(QFrame):
 
     def process(self):
         task_ad.register_task_python_script(
-            'Batch processing',
+            'Video batch processing',
             [
                 'batch_process.py', 'video',
                 self.input_dir_box.path, self.output_dir_box.path,
@@ -169,24 +183,16 @@ class VideoWidget(QFrame):
         MessageBox('Success', 'Task added', rootWidget(self)).exec()
 
 
-class MusicWidget(QFrame):
+class MusicWidget(PageWidget):
     def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        self.setObjectName('MusicWidget')
-
-        self.main_layout = QVBoxLayout(self)
-
-        self.main_layout.addWidget(TitleLabel('Batch processing', self))
-
-        # help label
-        self.help_label = BodyLabel('''对音频批量进行降噪和增益处理''', self)
-        self.main_layout.addWidget(self.help_label)
+        super().__init__('Music', 'Music', '''对音频批量进行降噪和增益处理''', parent=parent)
+        self.main_layout = QVBoxLayout(self.body_widget)
 
         self.input_dir_box = PathBox(is_dir=True)
         self.output_dir_box = PathBox(is_dir=True)
-        self.main_layout.addWidget(SubtitleLabel('Input Dir', self))
+        self.main_layout.addWidget(SubtitleLabel('Input folder', self))
         self.main_layout.addWidget(self.input_dir_box)
-        self.main_layout.addWidget(SubtitleLabel('Output Dir', self))
+        self.main_layout.addWidget(SubtitleLabel('Output folder', self))
         self.main_layout.addWidget(self.output_dir_box)
 
         self.process_bn = PrimaryPushButton('Process')
@@ -197,13 +203,61 @@ class MusicWidget(QFrame):
 
     def process(self):
         task_ad.register_task_python_script(
-            'Batch processing',
+            'Music batch processing',
             [
                 'batch_process.py', 'audio',
                 self.input_dir_box.path, self.output_dir_box.path,
                 # str(setting.noise_reduction_strength),
                 # str(setting.norm_dB),
                 # setting.noise_file_path if setting.noise_file_path else '',
+                os.path.abspath('./setting.json')
+            ],
+        )
+        MessageBox('Success', 'Task added', rootWidget(self)).exec()
+
+
+class ImageWatermarkWidget(PageWidget):
+    def __init__(self, parent=None):
+        super().__init__('ImageWatermark', 'ImageWatermark', '''为视频添加水印''', parent=parent)
+        self.main_layout = QVBoxLayout(self.body_widget)
+
+        self.image_file_path_box = PathBox(is_dir=False)
+        self.input_dir_box = PathBox(is_dir=True)
+        self.position_box = ComboBox(self)
+        self.position_box.addItems(['Top-left', 'Top-right', 'Bottom-left', 'Bottom-right'])
+        self.position_box.setCurrentText('Top-left')
+        self.output_dir_box = PathBox(is_dir=True)
+
+        self.main_layout.addWidget(SubtitleLabel('Image File Path', self))
+        self.main_layout.addWidget(self.image_file_path_box)
+        self.main_layout.addWidget(SubtitleLabel('Input folder', self))
+        self.main_layout.addWidget(self.input_dir_box)
+        self.main_layout.addWidget(SubtitleLabel('Position', self))
+        self.main_layout.addWidget(self.position_box)
+        self.main_layout.addWidget(SubtitleLabel('Output folder', self))
+        self.main_layout.addWidget(self.output_dir_box)
+
+        self.process_bn = PrimaryPushButton('Process')
+        self.process_bn.clicked.connect(self.process)
+        self.main_layout.addWidget(self.process_bn)
+
+        self.main_layout.addStretch()
+
+    def process(self):
+        option = {
+            'Top-left': 'left-top',
+            'Top-right': 'right-top',
+            'Bottom-left': 'left-bottom',
+            'Bottom-right': 'right-bottom',
+        }
+        task_ad.register_task_python_script(
+            'Add image watermark',
+            [
+                'command/image_watermark.py',
+                self.image_file_path_box.path,
+                self.input_dir_box.path,
+                option[self.position_box.currentText()],
+                self.output_dir_box.path,
                 os.path.abspath('./setting.json')
             ],
         )
@@ -241,6 +295,10 @@ class TaskItemWidget(CardWidget):
 
         self.main_layout = QHBoxLayout(self)
 
+        self.restart_bn = ToolButton(FluentIcon.SYNC, self)
+        self.restart_bn.clicked.connect(self.task_inf.restart)
+        self.main_layout.addWidget(self.restart_bn)
+
         self.task_name_label = BodyLabel(self.task_inf.name, self)
         self.task_name_label.setObjectName('task_name_label')
         self.main_layout.addWidget(self.task_name_label)
@@ -258,6 +316,8 @@ class TaskItemWidget(CardWidget):
             self.task_status_label = InfoBadge("Success", self, InfoLevel.SUCCESS)
         if status == task.TaskStatus.error:
             self.task_status_label = InfoBadge("Error", self, InfoLevel.ERROR)
+        if status == task.TaskStatus.restart:
+            self.task_status_label = InfoBadge("Restart", self, InfoLevel.WARNING)
 
         self.main_layout.addWidget(self.task_status_label)
 
@@ -286,6 +346,9 @@ class TaskItemWidget(CardWidget):
         if status == task.TaskStatus.error:
             self.task_status_label.setText("Error")
             self.task_status_label.setLevel(InfoLevel.ERROR)
+        if status == task.TaskStatus.restart:
+            self.task_status_label.setText("Restart")
+            self.task_status_label.setLevel(InfoLevel.WARNING)
 
     def show_output(self):
         # MessageBox('Output', self.task_inf.stdout.getvalue(), rootWidget(self)).exec()
@@ -310,6 +373,7 @@ class TaskIndexWidget(QFrame):
         self.setObjectName('TaskIndexWidget')
 
         self.main_layout = QVBoxLayout(self)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
         self.main_layout.addStretch()
 
     def update_task_list(self):
@@ -318,6 +382,11 @@ class TaskIndexWidget(QFrame):
             item = self.main_layout.itemAt(i)
             if item and item.widget():
                 item.widget().deleteLater()
+            else:
+                self.main_layout.removeItem(item)
+
+        if len(task_ad.task_info_list) < 1:
+            self.main_layout.insertWidget(0, SubtitleLabel('No task', self))
 
         # add task item
         for task_inf in task_ad.task_info_list:
@@ -325,28 +394,23 @@ class TaskIndexWidget(QFrame):
             self.main_layout.insertWidget(0, item)
 
 
-class TaskWidget(QFrame):
+class TaskWidget(PageWidget):
     def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        self.setObjectName('TaskWidget')
+        super().__init__('Task', 'Task', parent=parent)
+        self.main_layout = QVBoxLayout(self.body_widget)
 
-        self.main_layout = QVBoxLayout(self)
-
-        self.main_layout.addWidget(TitleLabel('Task', self))
         # head
         self.head_layout = QHBoxLayout()
         self.head_layout.addStretch()
         self.main_layout.addLayout(self.head_layout)
 
-
-
         # body
-        self.scroll_area = SmoothScrollArea(self)
+        self.scroll_area = SmoothScrollArea(self.body_widget)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet('border: none; background: transparent;')
         self.main_layout.addWidget(self.scroll_area)
 
-        self.index_widget = TaskIndexWidget(self)
+        self.index_widget = TaskIndexWidget(self.body_widget)
         self.scroll_area.setWidget(self.index_widget)
 
     def showEvent(self, e):
@@ -354,18 +418,15 @@ class TaskWidget(QFrame):
         self.index_widget.update_task_list()
 
 
-class SettingWidget(QFrame):
+class SettingWidget(PageWidget):
     def __init__(self, parent=None):
-        super(SettingWidget, self).__init__(parent=parent)
-        self.setObjectName('SettingWidget')
+        super(SettingWidget, self).__init__('Setting', 'Setting', parent=parent)
 
-        self.main_layout = QVBoxLayout(self)
-
-        self.main_layout.addWidget(TitleLabel('Setting', self))
+        self.main_layout = QVBoxLayout(self.body_widget)
 
         self.theme_layout = QHBoxLayout()
-        self.theme_layout.addWidget(SubtitleLabel('Theme', self))
-        self.theme_box = ComboBox(self)
+        self.theme_layout.addWidget(SubtitleLabel('Theme', self.body_widget))
+        self.theme_box = ComboBox(self.body_widget)
         self.theme_box.addItems(['Auto', 'Light', 'Dark'])
         self.theme_box.setCurrentText('Auto')
         self.theme_box.currentTextChanged.connect(self.change_theme)
@@ -375,7 +436,7 @@ class SettingWidget(QFrame):
 
         self.noise_file_path_box = PathBox(is_dir=False)
         self.noise_file_path_box.path_changed.connect(self.change_noise_file_path)
-        self.main_layout.addWidget(SubtitleLabel('Noise File Path', self))
+        self.main_layout.addWidget(SubtitleLabel('Noise File Path', self.body_widget))
         self.main_layout.addWidget(self.noise_file_path_box)
 
         self.noise_reduction_strength = DoubleSpinBox()
@@ -383,7 +444,7 @@ class SettingWidget(QFrame):
         self.noise_reduction_strength.setSingleStep(0.01)
         self.noise_reduction_strength.setValue(0.01)
         self.noise_reduction_strength.valueChanged.connect(self.change_noise_reduction_strength)
-        self.main_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
+        self.main_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self.body_widget))
         self.main_layout.addWidget(self.noise_reduction_strength)
 
         self.norm_dB = SpinBox()
@@ -391,11 +452,11 @@ class SettingWidget(QFrame):
         self.norm_dB.setSingleStep(1)
         self.norm_dB.setValue(-3)
         self.norm_dB.valueChanged.connect(self.change_norm_dB)
-        self.main_layout.addWidget(SubtitleLabel('Audio Norm dB', self))
+        self.main_layout.addWidget(SubtitleLabel('Audio Norm dB', self.body_widget))
         self.main_layout.addWidget(self.norm_dB)
 
         # audio_bandpass_filter
-        self.main_layout.addWidget(SubtitleLabel('Audio Bandpass Filter', self))
+        self.main_layout.addWidget(SubtitleLabel('Audio Bandpass Filter', self.body_widget))
 
         self.bandpass_filter_layout = QHBoxLayout()
 
@@ -414,8 +475,6 @@ class SettingWidget(QFrame):
         self.bandpass_filter_layout.addWidget(self.audio_bandpass_filter_high)
 
         self.main_layout.addLayout(self.bandpass_filter_layout)
-
-
 
         # export and import setting
         self.export_import_layout = QHBoxLayout()
@@ -488,7 +547,6 @@ class SettingWidget(QFrame):
             self.bandpass_filter_low.setValue(setting.bandpass_filter_low)
             self.audio_bandpass_filter_high.setValue(setting.bandpass_filter_high)
 
-
     @classmethod
     def save(cls):
         cls.export_setting('setting.json')
@@ -516,6 +574,7 @@ class Window(MSFluentWindow):
         # create sub interface
         self.videoInterface = VideoWidget(self)
         self.musicInterface = MusicWidget(self)
+        self.imageWatermarkInterface = ImageWatermarkWidget(self)
         self.taskInterface = TaskWidget(self)
         self.settingInterface = SettingWidget(self)
 
@@ -525,6 +584,7 @@ class Window(MSFluentWindow):
     def initNavigation(self):
         self.addSubInterface(self.videoInterface, FluentIcon.VIDEO, 'Video')
         self.addSubInterface(self.musicInterface, FluentIcon.MUSIC, 'Music')
+        self.addSubInterface(self.imageWatermarkInterface, FluentIcon.IMAGE_EXPORT, 'Watermark')
         self.addSubInterface(self.taskInterface, FluentIcon.CHECKBOX, 'Task', position=NavigationItemPosition.BOTTOM)
         self.addSubInterface(self.settingInterface, FluentIcon.SETTING, 'Settings',
                              position=NavigationItemPosition.BOTTOM)

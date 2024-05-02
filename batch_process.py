@@ -54,8 +54,13 @@ if __name__ == '__main__':
     input_dir = sys.argv[2]
     output_dir = sys.argv[3]
     setting_path = sys.argv[4]
+
     if not os.path.isfile(setting_path):
         raise ValueError('Setting file not found: {}'.format(setting_path))
+    if not os.path.isdir(input_dir):
+        raise ValueError('Input dir not found: {}'.format(input_dir))
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
     with open(setting_path, 'r', encoding='utf-8') as f:
         setting = Setting.model_validate_json(f.read())
     if setting.noise_file_path is not None:

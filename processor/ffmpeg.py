@@ -14,7 +14,7 @@ from __future__ import unicode_literals, print_function, division
 
 import os
 import sys
-
+from typing import *
 from command import call_command
 from processor._utils import _get_mid_file_path
 
@@ -99,30 +99,56 @@ def add_background_music(video_file_path, background_music_file_path, background
     return video_out_path
 
 
-def add_image_watermark(video_file_path, image_file_path, video_out_path=None):
+def add_image_watermark(
+        video_file_path,
+        image_file_path,
+        location='left-top',
+        video_out_path=None,
+):
     """
     添加图片水印
 
     :param video_file_path:
     :param image_file_path:
+    :type location: str
+    :param location:  ['left-top', 'left-bottom', 'right-top', 'right-bottom']
     :param video_out_path:
     :return:
     """
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
+    # old = 'overlay=x=0:y=H-h'
+    overlay_str = 'overlay='
+    if location == 'left-top':
+        overlay_str += 'x=0:y=0'
+    elif location == 'left-bottom':
+        overlay_str += 'x=0:y=H-h'
+    elif location == 'right-top':
+        overlay_str += 'x=W-w:y=0'
+    elif location == 'right-bottom':
+        overlay_str += 'x=W-w:y=H-h'
+    else:
+        raise ValueError('location must be one of ["left-top", "left-bottom", "right-top", "right-bottom"]')
     call_command([
         ffmpeg_path,
         '-i', video_file_path,
         '-i', image_file_path,
-        '-filter_complex', 'overlay=x=0:y=H-h',
+        '-filter_complex', overlay_str,
         '-shortest', '-y', video_out_path,
     ])
     return video_out_path
 
 
-def add_text_watermark(video_file_path, text,
-                       font_point=(0, 0), font_size=30, font_file='lazy.ttf', font_color='808080', font_alpha=0.2,
-                       video_out_path=None):
+def add_text_watermark(
+        video_file_path,
+        text,
+        font_point=(0, 0),
+        font_size=30,
+        font_file='lazy.ttf',
+        font_color='808080',
+        font_alpha=0.2,
+        video_out_path=None,
+):
     """
     添加文字水印
 
@@ -146,7 +172,7 @@ def add_text_watermark(video_file_path, text,
         (
             f"drawtext="
             f"fontsize={font_size}:"
-            f"fontfile{font_file}:"
+            f"fontfile={font_file}:"
             f"text='{text}':"
             f"x={font_point[0]}:"
             f"y={font_point[1]}:"
