@@ -131,6 +131,7 @@ def add_image_watermark(
         raise ValueError('location must be one of ["left-top", "left-bottom", "right-top", "right-bottom"]')
     call_command([
         ffmpeg_path,
+        '-hwaccel', 'auto',
         '-i', video_file_path,
         '-i', image_file_path,
         '-filter_complex', overlay_str,
