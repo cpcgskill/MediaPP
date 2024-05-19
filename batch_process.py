@@ -77,7 +77,7 @@ if __name__ == '__main__':
         all_files = [i for i in all_files if os.path.isfile(i) and os.path.splitext(i)[1] in video_support_ext]
         names = [os.path.basename(i) for i in all_files]
 
-        video_paths, audio_paths = zip(*[audio_and_video_separation(i) for i in all_files])
+        video_paths, audio_paths = zip(*[audio_and_video_separation(i, is_copy_video=True) for i in all_files])
         audio_paths = audio_batch_process(audio_paths, setting)
         for name, video_path, audio_path in zip(names, video_paths, audio_paths):
             output_video_path = os.path.join(output_dir, name)

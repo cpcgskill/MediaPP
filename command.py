@@ -11,11 +11,14 @@
 
 """
 from __future__ import unicode_literals, print_function, division
+
+import io
 import subprocess
 
 
-def call_command(args, stdout=None):
-    print(*args)
+def call_command(args, stdout=None, print_to_stdout=True):
+    if print_to_stdout:
+        print(*args)
     process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     # 实时读取输出并写入IO流
     while True:
@@ -31,10 +34,17 @@ def call_command(args, stdout=None):
                 output = output.decode('utf-8')
             except UnicodeDecodeError:
                 output = output.decode('gbk')
-            print(output)
+            if print_to_stdout:
+                print(output)
             if stdout is not None:
-                stdout.write(output)
+                stdout.write(output+'\n')
     if process.returncode == 0:
         return 0
     else:
         raise subprocess.CalledProcessError(process.returncode, args)
+
+
+def call_command_return_str(args):
+    stdout = io.StringIO()
+    call_command(args, stdout, print_to_stdout=False)
+    return stdout.getvalue()

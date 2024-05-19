@@ -14,21 +14,20 @@ from __future__ import unicode_literals, print_function, division
 
 import os
 import sys
+import pydantic
 from typing import *
-from command import call_command
+from command import call_command, call_command_return_str
 from processor._utils import _get_mid_file_path
-
-ffmpeg_path = 'bin/ffmpeg/ffmpeg.exe'
-if not os.path.isfile(ffmpeg_path):
-    sys.exit(1)
+from pypeg import ffmpeg_path, FFMpeg, GlobalOptions, Accelerate, InputFile, OutputFile, get_formats, get_audio_streams
 
 
 def audio_and_video_separation(
         video_file_path,
         video_out_path=None, audio_out_path=None,
         is_copy_video=False,
+        is_copy_audio=False,
 ):
-    # type: (str, str, str, bool) -> (str, str)
+    # type: (str, str, str, bool, bool) -> (str, str)
     """
     分离音频和视频
 
@@ -36,24 +35,57 @@ def audio_and_video_separation(
     :param video_out_path:
     :param audio_out_path:
     :param is_copy_video:
+    :param is_copy_audio:
     :return:
     """
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
-    aac_audio_out_path = _get_mid_file_path('aac')
     if audio_out_path is None:
         audio_out_path = _get_mid_file_path('wav')
-    call_command(
-        [ffmpeg_path, '-i', video_file_path, '-an', '-y'] +
-        (['-c:v', 'copy'] if is_copy_video else [])
-        + [video_out_path]
+
+    streams = get_audio_streams(video_file_path)
+    if not streams:
+        raise ValueError('No audio streams found in {}'.format(video_file_path))
+
+    accelerate = Accelerate.best(get_formats(video_file_path), get_formats(video_file_path))
+    video_accelerate = accelerate
+    audio_accelerate = accelerate
+    if is_copy_video:
+        video_accelerate = Accelerate.copyonly()
+    if is_copy_audio:
+        audio_accelerate = Accelerate.copyonly()
+
+    ffmpeg = FFMpeg(
+        global_options=GlobalOptions(),
+        input_files=[
+            InputFile(
+                path=video_file_path,
+                accelerate=accelerate,
+            ),
+        ],
+        output_files=[
+            OutputFile(
+                path=video_out_path,
+                accelerate=video_accelerate,
+                options=['-map', 'v'],
+            ),
+            OutputFile(
+                path=audio_out_path,
+                accelerate=audio_accelerate,
+                options=['-map', 'a'],
+            ),
+        ]
     )
-    call_command([ffmpeg_path, '-i', video_file_path, '-vn', '-y', aac_audio_out_path])
-    call_command([ffmpeg_path, '-i', aac_audio_out_path, '-vn', '-y', audio_out_path])
+    call_command(ffmpeg.compute())
+
     return video_out_path, audio_out_path
 
 
-def audio_and_video_merge(audio_file_path, video_file_path, video_out_path=None):
+def audio_and_video_merge(
+        audio_file_path,
+        video_file_path,
+        video_out_path=None,
+):
     """
     合并音频和视频
 
@@ -64,12 +96,33 @@ def audio_and_video_merge(audio_file_path, video_file_path, video_out_path=None)
     """
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
-    call_command([
-        ffmpeg_path, '-i', video_file_path,
-        '-i', audio_file_path,
-        '-y', '-c:v', 'copy', '-c:a',
-        'aac', '-strict', 'experimental', video_out_path,
-    ])
+    # call_command([
+    #     ffmpeg_path, '-i', video_file_path,
+    #     '-i', audio_file_path,
+    #     '-y', '-c:v', 'copy', '-c:a',
+    #     'copy', '-strict', 'experimental', video_out_path,
+    # ])
+    accelerate = Accelerate.copyonly()
+    ffmpeg = FFMpeg(
+        global_options=GlobalOptions(),
+        input_files=[
+            InputFile(
+                path=video_file_path,
+                accelerate=accelerate,
+            ),
+            InputFile(
+                path=audio_file_path,
+                accelerate=accelerate,
+            )
+        ],
+        output_files=[
+            OutputFile(
+                path=video_out_path,
+                accelerate=accelerate,
+            ),
+        ]
+    )
+    call_command(ffmpeg.compute())
     return video_out_path
 
 
@@ -129,13 +182,31 @@ def add_image_watermark(
         overlay_str += 'x=W-w:y=H-h'
     else:
         raise ValueError('location must be one of ["left-top", "left-bottom", "right-top", "right-bottom"]')
-    call_command([
-        ffmpeg_path,
-        '-i', video_file_path,
-        '-i', image_file_path,
-        '-filter_complex', overlay_str,
-        '-shortest', '-y', video_out_path,
-    ])
+
+    accelerate = Accelerate.best(get_formats(video_file_path), get_formats(video_file_path))
+    ffmpeg = FFMpeg(
+        global_options=GlobalOptions(),
+        input_files=[
+            InputFile(
+                path=video_file_path,
+                accelerate=accelerate,
+            ),
+            InputFile(
+                path=image_file_path,
+            )
+        ],
+        process_options=[
+            '-filter_complex', overlay_str,
+        ],
+        output_files=[
+            OutputFile(
+                path=video_out_path,
+                accelerate=accelerate,
+            ),
+        ]
+    )
+    call_command(ffmpeg.compute())
+
     return video_out_path
 
 
@@ -165,19 +236,33 @@ def add_text_watermark(
     text = text.replace(':', '\\:')
     if video_out_path is None:
         video_out_path = _get_mid_file_path('mp4')
-    call_command([
-        ffmpeg_path,
-        '-i', video_file_path,
-        '-vf',
-        (
-            f"drawtext="
-            f"fontsize={font_size}:"
-            f"fontfile={font_file}:"
-            f"text='{text}':"
-            f"x={font_point[0]}:"
-            f"y={font_point[1]}:"
-            f"fontcolor={font_color}@{font_alpha}"
-        ),
-        video_out_path,
-    ])
+    accelerate = Accelerate.best(get_formats(video_file_path), get_formats(video_file_path))
+    ffmpeg = FFMpeg(
+        global_options=GlobalOptions(),
+        input_files=[
+            InputFile(
+                path=video_file_path,
+                accelerate=accelerate,
+            ),
+        ],
+        process_options=[
+            '-vf',
+            (
+                f"drawtext="
+                f"fontsize={font_size}:"
+                f"fontfile={font_file}:"
+                f"text='{text}':"
+                f"x={font_point[0]}:"
+                f"y={font_point[1]}:"
+                f"fontcolor={font_color}@{font_alpha}"
+            ),
+        ],
+        output_files=[
+            OutputFile(
+                path=video_out_path,
+                accelerate=accelerate,
+            ),
+        ]
+    )
+    call_command(ffmpeg.compute())
     return video_out_path

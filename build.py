@@ -32,6 +32,7 @@ files = [
     '*.py',
     '*.ico',
     'processor/*.py',
+    'command/*.py',
     'bin/*/*',
     'LICENSE',
     'README.md',
