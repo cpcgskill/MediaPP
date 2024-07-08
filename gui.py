@@ -172,7 +172,7 @@ class VideoWidget(PageWidget):
         task_ad.register_task_python_script(
             'Video batch processing',
             [
-                'batch_process.py', 'video',
+                'command/batch_process.py', 'video',
                 self.input_dir_box.path, self.output_dir_box.path,
                 # str(setting.noise_reduction_strength),
                 # str(setting.norm_dB),
@@ -205,7 +205,7 @@ class MusicWidget(PageWidget):
         task_ad.register_task_python_script(
             'Music batch processing',
             [
-                'batch_process.py', 'audio',
+                'command/batch_process.py', 'audio',
                 self.input_dir_box.path, self.output_dir_box.path,
                 # str(setting.noise_reduction_strength),
                 # str(setting.norm_dB),
