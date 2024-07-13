@@ -148,41 +148,6 @@ class PageWidget(QFrame):
         self.main_layout.addWidget(self.body_widget)
 
 
-class VideoWidget(PageWidget):
-    def __init__(self, parent=None):
-        super().__init__('Video', 'Video', '''对视频批量进行降噪和增益处理''', parent=parent)
-        self.main_layout = QVBoxLayout(self.body_widget)
-        # Input Dir and Output Dir
-        self.input_dir_box = PathBox(is_dir=True)
-        self.output_dir_box = PathBox(is_dir=True)
-
-        self.main_layout.addWidget(SubtitleLabel('Input folder', self))
-        self.main_layout.addWidget(self.input_dir_box)
-        self.main_layout.addWidget(SubtitleLabel('Output folder', self))
-        self.main_layout.addWidget(self.output_dir_box)
-
-        # Process Button
-        self.process_bn = PrimaryPushButton('Process')
-        self.process_bn.clicked.connect(self.process)
-        self.main_layout.addWidget(self.process_bn)
-
-        self.main_layout.addStretch()
-
-    def process(self):
-        task_ad.register_task_python_script(
-            'Video batch processing',
-            [
-                'command/batch_process.py', 'video',
-                self.input_dir_box.path, self.output_dir_box.path,
-                # str(setting.noise_reduction_strength),
-                # str(setting.norm_dB),
-                # setting.noise_file_path if setting.noise_file_path else '',
-                os.path.abspath('./setting.json')
-            ],
-        )
-        MessageBox('Success', 'Task added', rootWidget(self)).exec()
-
-
 class MusicWidget(PageWidget):
     def __init__(self, parent=None):
         super().__init__('Music', 'Music', '''对音频批量进行降噪和增益处理''', parent=parent)
@@ -205,7 +170,7 @@ class MusicWidget(PageWidget):
         task_ad.register_task_python_script(
             'Music batch processing',
             [
-                'command/batch_process.py', 'audio',
+                'command/audio_post_process.py',
                 self.input_dir_box.path, self.output_dir_box.path,
                 # str(setting.noise_reduction_strength),
                 # str(setting.norm_dB),
@@ -572,7 +537,6 @@ class Window(MSFluentWindow):
         super().__init__()
 
         # create sub interface
-        self.videoInterface = VideoWidget(self)
         self.musicInterface = MusicWidget(self)
         self.imageWatermarkInterface = ImageWatermarkWidget(self)
         self.taskInterface = TaskWidget(self)
@@ -582,7 +546,6 @@ class Window(MSFluentWindow):
         self.initWindow()
 
     def initNavigation(self):
-        self.addSubInterface(self.videoInterface, FluentIcon.VIDEO, 'Video')
         self.addSubInterface(self.musicInterface, FluentIcon.MUSIC, 'Music')
         self.addSubInterface(self.imageWatermarkInterface, FluentIcon.IMAGE_EXPORT, 'Watermark')
         self.addSubInterface(self.taskInterface, FluentIcon.CHECKBOX, 'Task', position=NavigationItemPosition.BOTTOM)

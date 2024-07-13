@@ -15,6 +15,7 @@ from __future__ import unicode_literals, print_function, division
 if False:
     from typing import *
 
+from pypeg import get_audio_streams
 from video import *
 from processor.sox import *
 from processor.DTLN import DTLN_batch_process
@@ -50,10 +51,9 @@ def audio_batch_process(input_files, setting):
 
 
 if __name__ == '__main__':
-    typ = sys.argv[1]
-    input_dir = sys.argv[2]
-    output_dir = sys.argv[3]
-    setting_path = sys.argv[4]
+    input_dir = sys.argv[1]
+    output_dir = sys.argv[2]
+    setting_path = sys.argv[3]
 
     if not os.path.isfile(setting_path):
         raise ValueError('Setting file not found: {}'.format(setting_path))
@@ -72,28 +72,40 @@ if __name__ == '__main__':
 
     all_files = [os.path.join(input_dir, i) for i in os.listdir(input_dir)]
     if len(all_files) == 0:
-        sys.exit(0)
-    if typ == 'video':
-        all_files = [i for i in all_files if os.path.isfile(i) and os.path.splitext(i)[1] in video_support_ext]
-        names = [os.path.basename(i) for i in all_files]
+        raise ValueError('No files found in {}'.format(input_dir))
 
-        video_paths, audio_paths = zip(*[audio_and_video_separation(i, is_copy_video=True) for i in all_files])
-        audio_paths = audio_batch_process(audio_paths, setting)
-        for name, video_path, audio_path in zip(names, video_paths, audio_paths):
-            output_video_path = os.path.join(output_dir, name)
-            audio_and_video_merge(
-                audio_path,
-                video_path,
-                output_video_path,
-            )
-    elif typ == 'audio':
-        all_files = [i for i in all_files if os.path.isfile(i) and os.path.splitext(i)[1] in audio_support_ext]
-        names = [os.path.basename(i) for i in all_files]
+    video_audio_pair_list = []  # type: List[Tuple[str, str]] # video_path, audio_path
+    for file in all_files:
+        ext = os.path.splitext(file)[1]
+        if ext in video_support_ext:
+            if len(get_audio_streams(file)) == 0:
+                video_path = file
+                audio_path = None
+            else:
+                video_path, audio_path = audio_and_video_separation(file, is_copy_video=True)
+                print('video_path', video_path)
+        elif ext in audio_support_ext:
+            video_path = None
+            audio_path = file
+        else:
+            raise ValueError('Unknown file type: {}'.format(file))
+        video_audio_pair_list.append((video_path, audio_path))
 
-        audio_paths = audio_batch_process(all_files, setting)
+    # 预处理音频
+    audio_index_path_list = [(idx, audio_path) for idx, (video_path, audio_path) in enumerate(video_audio_pair_list) if
+                             audio_path is not None]
+    processed_audio_path_list = audio_batch_process([audio_path for idx, audio_path in audio_index_path_list], setting)
+    for (idx, _), processed_audio_path in zip(audio_index_path_list, processed_audio_path_list):
+        video_audio_pair_list[idx] = (video_audio_pair_list[idx][0], processed_audio_path)
 
-        for name, audio_path in zip(names, audio_paths):
-            output_audio_path = os.path.join(output_dir, name)
-            shutil.copy(audio_path, output_audio_path)
-    else:
-        raise ValueError('Unknown type: {}'.format(typ))
+    # 合并音频
+    for orig_media_path, (video_path, audio_path) in zip(all_files, video_audio_pair_list):
+        print('processing', video_path, audio_path)
+        # 分别处理视频和音频， 如果有一个为None则直接复制， 否则合并
+        output_path = os.path.join(output_dir, os.path.basename(orig_media_path))
+        if video_path is None:
+            shutil.copy(audio_path, output_path)
+        elif audio_path is None:
+            shutil.copy(video_path, output_path)
+        else:
+            audio_and_video_merge(audio_path, video_path, output_path)

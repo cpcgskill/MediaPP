@@ -44,7 +44,7 @@ def audio_and_video_separation(
         audio_out_path = _get_mid_file_path('wav')
 
     streams = get_audio_streams(video_file_path)
-    if not streams:
+    if len(streams) == 0:
         raise ValueError('No audio streams found in {}'.format(video_file_path))
 
     accelerate = Accelerate.best(get_formats(video_file_path), get_formats(video_file_path))
