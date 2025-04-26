@@ -603,6 +603,8 @@ class Window(MSFluentWindow):
     def showEvent(self, e):
         super(Window, self).showEvent(e)
         self.settingInterface.load()
+        # 将用户焦点设置到主窗口
+        self.setFocus()
 
     def closeEvent(self, e):
         super().closeEvent(e)

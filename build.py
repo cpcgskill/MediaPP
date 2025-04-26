@@ -138,6 +138,10 @@ def main(app_name, version, author, main_script, icon_path, license_path, files,
         shutil.rmtree(out_path)
     os.makedirs(out_path)
 
+    if os.path.isdir(tmp_path):
+        shutil.rmtree(tmp_path)
+    os.makedirs(tmp_path)
+
     print('Extracting python...')
     with zipfile.ZipFile(python_path, 'r') as zip_ref:
         zip_ref.extractall('build/out/')
