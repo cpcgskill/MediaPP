@@ -18,6 +18,7 @@ if False:
     from typing import *
 
 import sys
+
 sys.path.append('./win32')
 sys.path.append('./win32com')
 sys.path.append('./win32comext')
@@ -29,7 +30,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 
-from qfluentwidgets import PlainTextEdit
+from qfluentwidgets import PlainTextEdit, FluentWindow, FluentStyleSheet, MSFluentWindow
 from qfluentwidgets import Theme, setTheme
 
 from setting import Setting
@@ -47,6 +48,8 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout),
     ]
 )
+
+
 class MainThread(QThread):
     close_signal = pyqtSignal(int)
     output_signal = pyqtSignal(str)
@@ -77,22 +80,72 @@ class MainThread(QThread):
         self.process.kill()
 
 
-class MainWindow(PlainTextEdit):
+# class MainWindow(PlainTextEdit):
+#     def __init__(self, parent=None):
+#         super(MainWindow, self).__init__(parent)
+#         self.setWindowTitle('Output')
+#         self.setReadOnly(True)
+#         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+#         self.setWindowIcon(QIcon('favicon.ico'))
+#         if os.path.isfile('setting.json'):
+#             with open('setting.json', 'r') as f:
+#                 setting = Setting.model_validate_json(f.read())
+#                 if setting.theme == SettingTheme.AUTO:
+#                     setTheme(Theme.AUTO)
+#                 elif setting.theme == SettingTheme.DARK:
+#                     setTheme(Theme.DARK)
+#                 elif setting.theme == SettingTheme.LIGHT:
+#                     setTheme(Theme.LIGHT)
+#
+#         self.thread = MainThread(self)
+#         self.thread.output_signal.connect(self.output)
+#         self.thread.close_signal.connect(self.exit)
+#
+#         self.thread.start()
+#
+#     def closeEvent(self, a0):
+#         # # stop thread
+#         # self.thread.kill()
+#         # self.thread.wait()
+#         super(MainWindow, self).closeEvent(a0)
+#
+#     def output(self, text):
+#         logging.info(text)
+#         self.appendPlainText(text)
+#
+#     def exit(self, code):
+#         self.output("程序退出， 退出码: {}".format(code))
+#         if code == 0:
+#             self.close()
+
+class MainWindow(QWidget):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.setWindowTitle('Output')
-        self.setReadOnly(True)
-        self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.setWindowIcon(QIcon('favicon.ico'))
-        if os.path.isfile('setting.json'):
-            with open('setting.json', 'r') as f:
+
+        appdata = os.path.abspath(os.path.expandvars(os.environ.get('MediaPPData', '.media_pp')))
+
+        setting_path = os.path.join(appdata, 'setting.json')
+        if os.path.isfile(setting_path):
+            with open(setting_path, 'r') as f:
                 setting = Setting.model_validate_json(f.read())
-                if setting.theme == SettingTheme.AUTO:
-                    setTheme(Theme.AUTO)
-                elif setting.theme == SettingTheme.DARK:
-                    setTheme(Theme.DARK)
-                elif setting.theme == SettingTheme.LIGHT:
-                    setTheme(Theme.LIGHT)
+        else:
+            setting = Setting()
+
+        if setting.theme == SettingTheme.AUTO:
+            setTheme(Theme.AUTO)
+        elif setting.theme == SettingTheme.DARK:
+            setTheme(Theme.DARK)
+        elif setting.theme == SettingTheme.LIGHT:
+            setTheme(Theme.LIGHT)
+
+        self.layout = QVBoxLayout(self)
+
+        self.text = PlainTextEdit()
+        self.text.setReadOnly(True)
+        self.text.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.layout.addWidget(self.text)
 
         self.thread = MainThread(self)
         self.thread.output_signal.connect(self.output)
@@ -101,14 +154,14 @@ class MainWindow(PlainTextEdit):
         self.thread.start()
 
     def closeEvent(self, a0):
-        # stop thread
-        self.thread.kill()
-        self.thread.wait()
+        # # stop thread
+        # self.thread.kill()
+        # self.thread.wait()
         super(MainWindow, self).closeEvent(a0)
 
     def output(self, text):
         logging.info(text)
-        self.appendPlainText(text)
+        self.text.appendPlainText(text)
 
     def exit(self, code):
         self.output("程序退出， 退出码: {}".format(code))
@@ -118,7 +171,6 @@ class MainWindow(PlainTextEdit):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    setTheme(Theme.DARK)
     w = MainWindow()
     w.show()
     sys.exit(app.exec())

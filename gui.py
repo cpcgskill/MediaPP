@@ -12,11 +12,11 @@
 """
 from __future__ import unicode_literals, print_function, division
 
-import json
-import os
-
 if False:
     from typing import *
+
+import json
+import os
 import sys
 
 from PyQt6.QtWidgets import *
@@ -27,20 +27,26 @@ from qfluentwidgets import (
     SubtitleLabel, ToolButton, PrimaryPushButton, LineEdit,
     TitleLabel, DoubleSpinBox, SpinBox, BodyLabel,
     CardWidget, InfoBadge, InfoLevel, PushButton, SmoothScrollArea, TeachingTip,
-    TeachingTipTailPosition, TeachingTipView, ComboBox, TextEdit, PopupTeachingTip
+    TeachingTipTailPosition, TeachingTipView, ComboBox, TextEdit, PopupTeachingTip, PrimaryPushSettingCard,
+    ExpandGroupSettingCard, OptionsSettingCard, qconfig
 )
-from qfluentwidgets import FluentIcon, Theme, setTheme
+from qfluentwidgets import FluentIcon, Theme, setTheme, setThemeColor
 
 import task
 from setting import Setting
 from video import *
 
+appdata = os.path.abspath(os.path.expandvars(os.environ.get('MediaPPData', '.media_pp')))
+setting_path = os.path.join(appdata, 'setting.json')
+
 setting = Setting()
-if os.path.isfile('setting.json'):
-    with open('setting.json', 'r') as f:
+if os.path.isfile(setting_path):
+    with open(setting_path, 'r') as f:
         setting = Setting.model_validate_json(f.read())
 else:
-    with open('setting.json', 'w') as f:
+    if not os.path.isdir(os.path.dirname(setting_path)):
+        os.makedirs(os.path.dirname(setting_path))
+    with open(setting_path, 'w') as f:
         f.write(setting.model_dump_json(indent=4))
 task_ad = task.TaskAD()
 
@@ -170,12 +176,9 @@ class MusicWidget(PageWidget):
         task_ad.register_task_python_script(
             'Music batch processing',
             [
-                'command/audio_post_process.py',
+                'commands/audio_post_process.py',
                 self.input_dir_box.path, self.output_dir_box.path,
-                # str(setting.noise_reduction_strength),
-                # str(setting.norm_dB),
-                # setting.noise_file_path if setting.noise_file_path else '',
-                os.path.abspath('./setting.json')
+                setting_path
             ],
         )
         MessageBox('Success', 'Task added', rootWidget(self)).exec()
@@ -218,12 +221,12 @@ class ImageWatermarkWidget(PageWidget):
         task_ad.register_task_python_script(
             'Add image watermark',
             [
-                'command/image_watermark.py',
+                'commands/image_watermark.py',
                 self.image_file_path_box.path,
                 self.input_dir_box.path,
                 option[self.position_box.currentText()],
                 self.output_dir_box.path,
-                os.path.abspath('./setting.json')
+                setting_path,
             ],
         )
         MessageBox('Success', 'Task added', rootWidget(self)).exec()
@@ -383,15 +386,15 @@ class TaskWidget(PageWidget):
         self.index_widget.update_task_list()
 
 
-class SettingWidget(PageWidget):
+class MainSettingWidget(QWidget):
     def __init__(self, parent=None):
-        super(SettingWidget, self).__init__('Setting', 'Setting', parent=parent)
+        super(MainSettingWidget, self).__init__(parent=parent)
 
-        self.main_layout = QVBoxLayout(self.body_widget)
+        self.main_layout = QVBoxLayout(self)
 
         self.theme_layout = QHBoxLayout()
-        self.theme_layout.addWidget(SubtitleLabel('Theme', self.body_widget))
-        self.theme_box = ComboBox(self.body_widget)
+        self.theme_layout.addWidget(SubtitleLabel('Theme', self))
+        self.theme_box = ComboBox(self)
         self.theme_box.addItems(['Auto', 'Light', 'Dark'])
         self.theme_box.setCurrentText('Auto')
         self.theme_box.currentTextChanged.connect(self.change_theme)
@@ -401,7 +404,7 @@ class SettingWidget(PageWidget):
 
         self.noise_file_path_box = PathBox(is_dir=False)
         self.noise_file_path_box.path_changed.connect(self.change_noise_file_path)
-        self.main_layout.addWidget(SubtitleLabel('Noise File Path', self.body_widget))
+        self.main_layout.addWidget(SubtitleLabel('Noise File Path', self))
         self.main_layout.addWidget(self.noise_file_path_box)
 
         self.noise_reduction_strength = DoubleSpinBox()
@@ -409,7 +412,7 @@ class SettingWidget(PageWidget):
         self.noise_reduction_strength.setSingleStep(0.01)
         self.noise_reduction_strength.setValue(0.01)
         self.noise_reduction_strength.valueChanged.connect(self.change_noise_reduction_strength)
-        self.main_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self.body_widget))
+        self.main_layout.addWidget(SubtitleLabel('Noise Reduction Strength', self))
         self.main_layout.addWidget(self.noise_reduction_strength)
 
         self.norm_dB = SpinBox()
@@ -417,11 +420,11 @@ class SettingWidget(PageWidget):
         self.norm_dB.setSingleStep(1)
         self.norm_dB.setValue(-3)
         self.norm_dB.valueChanged.connect(self.change_norm_dB)
-        self.main_layout.addWidget(SubtitleLabel('Audio Norm dB', self.body_widget))
+        self.main_layout.addWidget(SubtitleLabel('Audio Norm dB', self))
         self.main_layout.addWidget(self.norm_dB)
 
         # audio_bandpass_filter
-        self.main_layout.addWidget(SubtitleLabel('Audio Bandpass Filter', self.body_widget))
+        self.main_layout.addWidget(SubtitleLabel('Audio Bandpass Filter', self))
 
         self.bandpass_filter_layout = QHBoxLayout()
 
@@ -452,10 +455,6 @@ class SettingWidget(PageWidget):
         self.export_import_layout.addStretch()
         self.main_layout.addLayout(self.export_import_layout)
 
-        self.main_layout.addStretch()
-
-        self.load()
-
     def change_theme(self, theme):
         if theme == 'Auto':
             setTheme(Theme.AUTO)
@@ -463,6 +462,7 @@ class SettingWidget(PageWidget):
             setTheme(Theme.LIGHT)
         elif theme == 'Dark':
             setTheme(Theme.DARK)
+        setThemeColor('#3098ff')
         setting.theme = theme
         self.save()
 
@@ -514,27 +514,67 @@ class SettingWidget(PageWidget):
 
     @classmethod
     def save(cls):
-        cls.export_setting('setting.json')
+        cls.export_setting(setting_path)
 
     def load(self):
-        if os.path.isfile('setting.json'):
-            self.import_setting('setting.json')
+        if os.path.isfile(setting_path):
+            self.import_setting(setting_path)
 
     def export_setting_dialog(self):
-        path = QFileDialog.getSaveFileName(self, 'Export setting', 'setting.json', 'JSON File (*.json)')[0]
+        path = QFileDialog.getSaveFileName(self, 'Export setting', appdata, 'JSON File (*.json)')[0]
         if path:
             self.export_setting(path)
 
     def import_setting_dialog(self):
-        path = QFileDialog.getOpenFileName(self, 'Import setting', '', 'JSON File (*.json)')[0]
+        path = QFileDialog.getOpenFileName(self, 'Import setting', appdata, 'JSON File (*.json)')[0]
         if path:
             self.import_setting(path)
+
+
+class MainSettingCard(ExpandGroupSettingCard):
+    def __init__(self, parent=None):
+        super(MainSettingCard, self).__init__(FluentIcon.SETTING, 'Setting', parent=parent)
+
+        self.main_setting_widget = MainSettingWidget()
+        self.addGroupWidget(self.main_setting_widget)
+
+    def load(self):
+        self.main_setting_widget.load()
+
+
+class SettingWidget(PageWidget):
+    def __init__(self, parent=None):
+        super(SettingWidget, self).__init__('Setting', 'Setting', parent=parent)
+
+        self.main_layout = QVBoxLayout(self.body_widget)
+
+        self.home_card = PrimaryPushSettingCard(
+            text="打开项目主页",
+            icon=FluentIcon.HELP,
+            title="帮助",
+            content="点击打开项目主页， 获取更多帮助",
+        )
+        self.home_card.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/cpcgskill/MediaPP")))
+        self.main_layout.addWidget(self.home_card)
+
+        self.main_setting_card = MainSettingCard()
+        self.main_layout.addWidget(self.main_setting_card)
+
+        self.main_layout.addStretch()
+
+        self.main_setting_card.load()
+
+    def save(self):
+        self.main_setting_card.main_setting_widget.save()
+
+    def load(self):
+        self.main_setting_card.load()
 
 
 class Window(MSFluentWindow):
 
     def __init__(self):
-        super().__init__()
+        super(Window, self).__init__()
 
         # create sub interface
         self.musicInterface = MusicWidget(self)
@@ -560,6 +600,10 @@ class Window(MSFluentWindow):
     def saveState(self):
         self.settingInterface.save()
 
+    def showEvent(self, e):
+        super(Window, self).showEvent(e)
+        self.settingInterface.load()
+
     def closeEvent(self, e):
         super().closeEvent(e)
         msg = MessageBox('Exit', 'Are you sure you want to exit?', self)
@@ -569,8 +613,6 @@ class Window(MSFluentWindow):
 
 
 if __name__ == '__main__':
-    # setTheme(Theme.DARK)
-
     app = QApplication(sys.argv)
     w = Window()
     w.show()

@@ -15,13 +15,11 @@ from __future__ import unicode_literals, print_function, division
 import enum
 import json
 import os
-import sys
-import time
 import shutil
 
 import pydantic
 from typing import *
-from command import call_command, call_command_return_str
+from commands.utils import call_command_return_str
 
 PATH = os.path.abspath(os.path.dirname(__file__))
 ffmpeg_bin_path = os.path.abspath(os.environ.get('FFMPEG_BIN_PATH', os.path.join(PATH, 'bin', 'ffmpeg')))

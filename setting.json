@@ -1,0 +1,8 @@
+{
+    "theme": "Auto",
+    "noise_file_path": null,
+    "noise_reduction_strength": 0.3,
+    "norm_dB": -3,
+    "bandpass_filter_low": 100,
+    "bandpass_filter_high": 3000
+}

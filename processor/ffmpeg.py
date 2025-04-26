@@ -12,11 +12,7 @@
 """
 from __future__ import unicode_literals, print_function, division
 
-import os
-import sys
-import pydantic
-from typing import *
-from command import call_command, call_command_return_str
+from commands.utils import call_command
 from processor._utils import _get_mid_file_path
 from pypeg import ffmpeg_path, FFMpeg, GlobalOptions, Accelerate, InputFile, OutputFile, get_formats, get_audio_streams
 

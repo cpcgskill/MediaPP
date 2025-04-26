@@ -15,8 +15,9 @@ import os
 import shutil
 import atexit
 
-tmp_dir = './.media_pp'
+appdata = os.path.abspath(os.path.expandvars(os.environ.get('MediaPPData', '.media_pp')))
 
+tmp_dir = os.path.join(appdata, 'tmp')
 is_initialized = False
 is_auto_clean = False
 

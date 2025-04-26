@@ -19,7 +19,7 @@ if False:
 import os
 import sys
 
-from command import call_command
+from commands.utils import call_command
 from processor._utils import _get_sub_dir_path
 
 eval_path = 'bin/DTLN/run_evaluation.py'

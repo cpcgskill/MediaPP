@@ -12,6 +12,7 @@
 """
 from __future__ import unicode_literals, print_function, division
 
+import os
 import sys
 import warnings
 
@@ -50,6 +51,7 @@ class Task(object):
             self.commands,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
 
         # 实时读取输出并写入IO流

@@ -17,7 +17,7 @@ import os
 import shutil
 import sys
 
-from command import call_command
+from commands.utils import call_command
 from processor._utils import _get_mid_file_path
 
 sox_path = 'bin/sox/sox.exe'

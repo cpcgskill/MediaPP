@@ -15,7 +15,7 @@ from __future__ import unicode_literals, print_function, division
 import cv2 as cv
 
 from blind_watermark import WaterMark
-from command import call_command
+from commands.utils import call_command
 from processor._utils import _get_tmp_file_path, _get_mid_file_path, _get_mid_dir
 
 

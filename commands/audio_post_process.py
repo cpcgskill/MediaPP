@@ -23,7 +23,7 @@ from processor._utils import _get_mid_file_path
 from setting import Setting
 import sys
 
-video_support_ext = ['.mp4', '.kv', '.avi', '.mov', '.flv', '.wmv', '.webm']
+video_support_ext = ['.mp4', '.mkv', '.mov', '.avi', '.wmv', '.flv', '.webm']
 audio_support_ext = ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.wma']
 
 
@@ -50,19 +50,7 @@ def audio_batch_process(input_files, setting):
     return DTLN_batch_process(output_files)
 
 
-if __name__ == '__main__':
-    input_dir = sys.argv[1]
-    output_dir = sys.argv[2]
-    setting_path = sys.argv[3]
-
-    if not os.path.isfile(setting_path):
-        raise ValueError('Setting file not found: {}'.format(setting_path))
-    if not os.path.isdir(input_dir):
-        raise ValueError('Input dir not found: {}'.format(input_dir))
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
-    with open(setting_path, 'r', encoding='utf-8') as f:
-        setting = Setting.model_validate_json(f.read())
+def main(input_dir, output_dir, setting):
     if setting.noise_file_path is not None:
         if os.path.splitext(setting.noise_file_path)[1] in video_support_ext:
             _, setting.noise_file_path = audio_and_video_separation(setting.noise_file_path)
@@ -109,3 +97,19 @@ if __name__ == '__main__':
             shutil.copy(video_path, output_path)
         else:
             audio_and_video_merge(audio_path, video_path, output_path)
+
+
+if __name__ == '__main__':
+    input_dir = sys.argv[1]
+    output_dir = sys.argv[2]
+    setting_path = sys.argv[3]
+
+    if not os.path.isfile(setting_path):
+        raise ValueError('Setting file not found: {}'.format(setting_path))
+    if not os.path.isdir(input_dir):
+        raise ValueError('Input dir not found: {}'.format(input_dir))
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+    with open(setting_path, 'r', encoding='utf-8') as f:
+        setting = Setting.model_validate_json(f.read())
+    main(input_dir, output_dir, setting)
